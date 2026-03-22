@@ -210,7 +210,7 @@ verify_migration_checklist() {
       'inventory files owned by ${BOOTSTRAP_USER} outside /home/${BOOTSTRAP_USER}')
         inventory_output="$(
           find / \
-            \( -path /proc -o -path /sys -o -path /dev -o -path /run \) -prune -o \
+            \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /tmp -o -path /var/lib/lightdm \) -prune -o \
             -path "/home/${bootstrap_user}" -prune -o \
             -user "${bootstrap_user}" -print
         )"

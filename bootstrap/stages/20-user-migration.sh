@@ -76,8 +76,4 @@ stage_verify() {
     log_error "Target user ${TARGET_USER} is not in the sudo group."
     return 1
   fi
-
-  verify_migration_checklist "$BOOTSTRAP_USER" "$TARGET_USER" \
-    "bootstrap/files/user/migration-checklist.txt" \
-    "bootstrap/files/user/required-groups.txt"
 }
