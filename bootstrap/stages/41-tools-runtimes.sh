@@ -92,9 +92,9 @@ stage_apply() {
     log_info "gum already available: $(gum --version)"
   fi
 
-  if command -v go >/dev/null 2>&1; then
+  if command -v go >/dev/null 2>&1 || runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" bash -c 'command -v go' >/dev/null 2>&1; then
     log_info "Installing Go tools for ${TARGET_USER}"
-    runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${target_home}/go" HOME="${target_home}" bash -lc 'go install golang.org/x/tools/gopls@latest'
+    runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${target_home}/go" HOME="${target_home}" bash -c 'go install golang.org/x/tools/gopls@latest'
   fi
 
   if command -v pipx >/dev/null 2>&1; then
