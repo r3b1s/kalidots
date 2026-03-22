@@ -1,0 +1,20 @@
+# Codex mixed-auth configuration template deployed for the target user.
+
+default_profile = "openai"
+
+[profiles.openai]
+provider = "openai"
+model = "gpt-5"
+
+[profiles.proxy]
+provider = "openai-proxy"
+model = "gpt-5"
+
+[providers.openai]
+name = "OpenAI"
+base_url = "https://api.openai.com/v1"
+
+[providers.openai-proxy]
+name = "Custom OpenAI-Compatible Provider"
+base_url = "https://proxy.example.invalid/v1"
+requires_openai_auth = true

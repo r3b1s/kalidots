@@ -1,0 +1,5 @@
+verify login shell is /bin/bash
+verify home directory is writable
+verify sudo group membership
+verify required groups from bootstrap/files/user/required-groups.txt
+inventory files owned by ${BOOTSTRAP_USER} outside /home/${BOOTSTRAP_USER}

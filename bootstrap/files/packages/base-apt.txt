@@ -1,0 +1,12 @@
+bash
+jq
+adduser
+passwd
+util-linux
+coreutils
+sudo
+ca-certificates
+curl
+git
+gum
+shellcheck

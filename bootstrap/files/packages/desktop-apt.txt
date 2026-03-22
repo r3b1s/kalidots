@@ -1,0 +1,8 @@
+# Desktop profile - core window manager and supporting tools
+i3
+rofi
+alacritty
+i3status
+feh
+picom
+xss-lock

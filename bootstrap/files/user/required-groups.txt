@@ -1,0 +1,6 @@
+sudo
+audio
+video
+plugdev
+netdev
+input

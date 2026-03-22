@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BOOTSTRAP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# shellcheck source=../lib/log.sh
+source "${BOOTSTRAP_ROOT}/lib/log.sh"
+# shellcheck source=../lib/cli.sh
+source "${BOOTSTRAP_ROOT}/lib/cli.sh"
+# shellcheck source=../lib/state.sh
+source "${BOOTSTRAP_ROOT}/lib/state.sh"
+# shellcheck source=../lib/runner.sh
+source "${BOOTSTRAP_ROOT}/lib/runner.sh"
+
+require_root() {
+  if [[ "${EUID}" -ne 0 ]]; then
+    log_error "Run this installer as root."
+    exit 1
+  fi
+}
+
+main() {
+  require_root
+  parse_cli_args "$@"
+
+  if [[ "${#SELECTED_PROFILES[@]}" -eq 0 ]]; then
+    choose_profiles_interactive
+  fi
+
+  normalize_selected_profiles "${SELECTED_PROFILES[@]}"
+  SELECTED_PROFILES=("${NORMALIZED_SELECTED_PROFILES[@]}")
+
+  state_init
+  state_set_run_selection \
+    "$(join_by_comma "${SELECTED_PROFILES[@]}")" \
+    "$(join_by_comma "${SELECTED_STAGE_IDS[@]}")"
+
+  run_selected_stages
+}
+
+main "$@"

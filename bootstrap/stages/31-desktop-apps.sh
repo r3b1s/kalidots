@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+
+# shellcheck disable=SC2034
+stage_id="desktop-apps"
+stage_description="Configure Rofi, Alacritty, shell ergonomics, Starship prompt, and status bar"
+stage_profiles=("desktop")
+
+# shellcheck disable=SC1091
+source "${BOOTSTRAP_ROOT}/lib/packages.sh"
+# shellcheck disable=SC1091
+source "${BOOTSTRAP_ROOT}/lib/desktop.sh"
+# shellcheck disable=SC1091
+source "${BOOTSTRAP_ROOT}/lib/users.sh"
+
+install_starship() {
+  if command -v starship >/dev/null 2>&1; then
+    log_info "Starship already installed: $(starship --version | head -1)"
+    return 0
+  fi
+
+  log_info "Installing Starship via install.sh (external exception: not in kali-rolling)"
+  curl -sS https://starship.rs/install.sh | sh -s -- --yes
+}
+
+upgrade_i3_bar_config() {
+  local target_home="$1"
+  local i3_config="${target_home}/.config/i3/config"
+
+  [[ -f "${i3_config}" ]] || return 0
+
+  if command -v i3status-rs >/dev/null 2>&1; then
+    log_info "i3status-rs found; upgrading bar config"
+    sed -i 's|status_command i3status$|status_command i3status-rs '"${target_home}"'/.config/i3/status.toml|' "${i3_config}"
+  else
+    log_info "i3status-rs not found; keeping i3status fallback"
+  fi
+}
+
+stage_apply() {
+  load_or_prompt_target_user >/dev/null
+
+  local target_home
+  target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
+
+  # Deploy Rofi config
+  install_user_dir ".config/rofi"
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/rofi/config.rasi" ".config/rofi/config.rasi"
+
+  # Deploy Alacritty config
+  install_user_dir ".config/alacritty"
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/alacritty/alacritty.toml" ".config/alacritty/alacritty.toml"
+
+  # Deploy shell ergonomics
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/inputrc" ".inputrc"
+
+  # Deploy bashrc drop-in
+  install_user_dir ".bashrc.d"
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/bashrc.d/50-starship.sh" ".bashrc.d/50-starship.sh"
+
+  # Ensure .bashrc sources drop-ins
+  local bashrc="${target_home}/.bashrc"
+  local drop_in_marker="# Source bashrc.d drop-ins"
+  if ! grep -qF "${drop_in_marker}" "${bashrc}" 2>/dev/null; then
+    cat >> "${bashrc}" <<'BASHRC_DROPIN'
+
+# Source bashrc.d drop-ins
+if [[ -d "${HOME}/.bashrc.d" ]]; then
+  for _dropin in "${HOME}/.bashrc.d"/*.sh; do
+    [[ -r "${_dropin}" ]] && source "${_dropin}"
+  done
+  unset _dropin
+fi
+BASHRC_DROPIN
+    chown "${TARGET_USER}:${TARGET_USER}" "${bashrc}"
+  fi
+
+  # Install Starship (external exception)
+  install_starship
+
+  # Deploy Starship config
+  install_user_dir ".config"
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/starship.toml" ".config/starship.toml"
+
+  # Upgrade bar config if i3status-rs is available
+  upgrade_i3_bar_config "${target_home}"
+}
+
+stage_verify() {
+  load_or_prompt_target_user >/dev/null
+
+  local target_home
+  target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
+
+  [[ -f "${target_home}/.config/rofi/config.rasi" ]] || { log_error "Rofi config not deployed"; return 1; }
+  [[ -f "${target_home}/.config/alacritty/alacritty.toml" ]] || { log_error "Alacritty config not deployed"; return 1; }
+  [[ -f "${target_home}/.inputrc" ]] || { log_error "inputrc not deployed"; return 1; }
+  grep -q "set editing-mode vi" "${target_home}/.inputrc" || { log_error "inputrc missing vi-mode"; return 1; }
+  [[ -f "${target_home}/.bashrc.d/50-starship.sh" ]] || { log_error "Starship bashrc drop-in not deployed"; return 1; }
+  command -v starship >/dev/null 2>&1 || { log_error "starship binary not found"; return 1; }
+  [[ -f "${target_home}/.config/starship.toml" ]] || { log_error "Starship config not deployed"; return 1; }
+}

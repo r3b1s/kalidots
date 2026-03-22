@@ -1,0 +1,10 @@
+configuration {
+    modi: "drun,window,run";
+    font: "JetBrainsMono Nerd Font 11";
+    show-icons: true;
+    drun-display-format: "{name}";
+    location: 0;
+    display-drun: "Apps";
+    display-window: "Windows";
+}
+@theme "gruvbox-dark"

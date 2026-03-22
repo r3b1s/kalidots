@@ -1,0 +1,2 @@
+# Apt prerequisites for the documentation-only LLM tooling profile.
+ca-certificates

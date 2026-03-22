@@ -1,0 +1,4 @@
+tool|method|package_or_url|binary|vm_local_auth|proxy_auth|credential_path
+codex|manual|not-installed-by-bootstrap|codex|chatgpt-login or OPENAI_API_KEY|custom provider config with requires_openai_auth = true|~/.codex
+claude|manual|not-installed-by-bootstrap|claude|claude.ai login or ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|~/.claude
+gemini|manual|not-installed-by-bootstrap|gemini|google-oauth or GEMINI_API_KEY|vertex or proxy documented separately|~/.config/gemini

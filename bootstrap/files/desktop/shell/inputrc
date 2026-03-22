@@ -1,0 +1,13 @@
+# Vi-mode readline configuration
+set editing-mode vi
+set show-mode-in-prompt on
+set vi-ins-mode-string "+"
+set vi-cmd-mode-string ":"
+
+# History search with arrow keys
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+
+# Completion improvements
+set show-all-if-ambiguous on
+set completion-ignore-case on

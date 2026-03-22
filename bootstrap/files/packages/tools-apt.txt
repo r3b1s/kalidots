@@ -1,0 +1,68 @@
+# Security Tooling — apt manifest for tools profile
+# Curated package set for Kali Linux; one package per line.
+# Lines starting with # are comments and are ignored.
+
+# --- Scanning and Enumeration ---
+nmap
+masscan
+gobuster
+ffuf
+nikto
+enum4linux
+dnsutils
+whois
+traceroute
+
+# --- Web Application Testing ---
+sqlmap
+wfuzz
+burpsuite
+zaproxy
+
+# --- Exploitation Frameworks ---
+metasploit-framework
+exploitdb
+
+# --- Network and Protocol Tools ---
+smbclient
+wireshark
+tcpdump
+netcat-traditional
+socat
+proxychains4
+tor
+
+# --- Credential and Password Tools ---
+john
+hashcat
+hydra
+
+# --- Active Directory ---
+crackmapexec
+bloodhound
+neo4j
+impacket-scripts
+
+# --- Wordlists and Payloads ---
+wordlists
+seclists
+
+# --- Forensics and Reversing ---
+binwalk
+foremost
+volatility3
+steghide
+exiftool
+
+# --- Utilities ---
+wget
+
+# --- Language Runtimes and Build Tools ---
+golang
+pipx
+python3-pip
+python3-venv
+ruby
+ruby-dev
+rustup
+build-essential

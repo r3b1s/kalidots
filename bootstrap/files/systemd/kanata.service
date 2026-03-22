@@ -1,0 +1,12 @@
+[Unit]
+Description=Kanata keyboard remapper
+Requires=local-fs.target
+After=local-fs.target
+
+[Service]
+ExecStartPre=/usr/bin/modprobe uinput
+ExecStart=/usr/local/bin/kanata -c /etc/kanata/layout.kbd
+Restart=no
+
+[Install]
+WantedBy=sysinit.target

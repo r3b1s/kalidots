@@ -1,0 +1,5 @@
+# Reference repository manifest
+# Format: url|destination|shallow (yes/no)
+# Lines starting with # are comments
+
+https://github.com/swisskyrepo/PayloadsAllTheThings.git|/opt/tools/PayloadsAllTheThings|yes
