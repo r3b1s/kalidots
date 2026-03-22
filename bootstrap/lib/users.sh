@@ -207,7 +207,7 @@ verify_migration_checklist() {
           fi
         done <"${groups_file}"
         ;;
-      "inventory files owned by ${BOOTSTRAP_USER} outside /home/${BOOTSTRAP_USER}")
+      'inventory files owned by ${BOOTSTRAP_USER} outside /home/${BOOTSTRAP_USER}')
         inventory_output="$(
           find / \
             \( -path /proc -o -path /sys -o -path /dev -o -path /run \) -prune -o \
