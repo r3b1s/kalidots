@@ -61,6 +61,43 @@ main() {
     "$(join_by_comma "${SELECTED_STAGE_IDS[@]}")"
 
   run_selected_stages
+
+  # Show completion summary
+  local target_user_display="${TARGET_USER:-<target user>}"
+  local cleanup_cmd="sudo $(realpath "$0") --stage bootstrap-user-cleanup"
+
+  if command -v gum >/dev/null 2>&1; then
+    printf '\n'
+    gum style \
+      --border double \
+      --border-foreground 212 \
+      --padding "1 3" \
+      --margin "1 0" \
+      --bold \
+      "  Bootstrap complete!  "
+    printf '\n'
+    gum style --foreground 10 "  All selected profiles have been applied and verified."
+    printf '\n'
+    gum style --foreground 14 "  Next steps:"
+    gum style "    1. Log out of this session"
+    gum style "    2. Log in as $(gum style --bold --foreground 212 "${target_user_display}")"
+    gum style "    3. Verify everything works as expected"
+    printf '\n'
+    gum style --foreground 11 "  Once you're satisfied, remove the bootstrap user by running:"
+    printf '\n'
+    gum style --foreground 8 "    ${cleanup_cmd}"
+    printf '\n'
+  else
+    printf '\n'
+    log_info "Bootstrap complete! All selected profiles applied and verified."
+    log_info "Next steps:"
+    log_info "  1. Log out of this session"
+    log_info "  2. Log in as ${target_user_display}"
+    log_info "  3. Verify everything works"
+    log_info "Once satisfied, remove the bootstrap user:"
+    log_info "  ${cleanup_cmd}"
+    printf '\n'
+  fi
 }
 
 main "$@"
