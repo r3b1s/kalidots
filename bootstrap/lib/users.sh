@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
 # shellcheck disable=SC2034
-readonly REQUIRED_GROUPS_FILE="${BOOTSTRAP_ROOT}/files/user/required-groups.txt"
-readonly MIGRATION_CHECKLIST_FILE="${BOOTSTRAP_ROOT}/files/user/migration-checklist.txt"
+if [[ -z "${REQUIRED_GROUPS_FILE+x}" ]]; then
+  readonly REQUIRED_GROUPS_FILE="${BOOTSTRAP_ROOT}/files/user/required-groups.txt"
+  readonly MIGRATION_CHECKLIST_FILE="${BOOTSTRAP_ROOT}/files/user/migration-checklist.txt"
+fi
 
 trim_whitespace() {
   local value="$1"

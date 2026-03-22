@@ -19,8 +19,28 @@ require_root() {
   fi
 }
 
+ensure_bootstrap_deps() {
+  local missing=()
+  command -v jq >/dev/null 2>&1 || missing+=(jq)
+  command -v git >/dev/null 2>&1 || missing+=(git)
+  command -v curl >/dev/null 2>&1 || missing+=(curl)
+
+  if [[ "${#missing[@]}" -gt 0 ]]; then
+    log_info "Installing bootstrap dependencies: ${missing[*]}"
+    apt-get update -qq
+    apt-get install -y -qq "${missing[@]}"
+  fi
+
+  # gum is preferred for interactive prompts but not strictly required
+  if ! command -v gum >/dev/null 2>&1; then
+    log_info "Installing gum for interactive prompts"
+    apt-get install -y -qq gum 2>/dev/null || log_warn "gum not available — falling back to plain prompts"
+  fi
+}
+
 main() {
   require_root
+  ensure_bootstrap_deps
   parse_cli_args "$@"
 
   if [[ "${#SELECTED_PROFILES[@]}" -eq 0 ]]; then
