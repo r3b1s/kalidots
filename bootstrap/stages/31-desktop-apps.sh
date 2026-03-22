@@ -23,6 +23,12 @@ install_i3status_rs() {
     return 0
   fi
 
+  # Ensure a default toolchain is set (rustup may be installed without one)
+  if command -v rustup >/dev/null 2>&1 && ! rustup toolchain list 2>/dev/null | grep -q default; then
+    log_info "Setting up stable Rust toolchain for i3status-rs build"
+    rustup default stable
+  fi
+
   log_info "Building i3status-rs from source"
   local build_dir
   build_dir="$(mktemp -d)"
