@@ -41,6 +41,17 @@ stage_apply() {
     install_user_file "${script}" ".config/i3/scripts/$(basename "${script}")" 755
   done
 
+  # Build and install clipmenu from source (not in Kali repos)
+  if ! command -v clipmenud >/dev/null 2>&1; then
+    log_info "Building clipmenu from source"
+    local clipmenu_build
+    clipmenu_build="$(mktemp -d)"
+    git clone --depth 1 https://github.com/cdown/clipmenu.git "${clipmenu_build}"
+    make -C "${clipmenu_build}"
+    make -C "${clipmenu_build}" install PREFIX=/usr/local
+    rm -rf "${clipmenu_build}"
+  fi
+
   # Flatpak setup for KeePassXC
   if command -v flatpak >/dev/null 2>&1; then
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -59,6 +70,7 @@ stage_verify() {
   command -v i3 >/dev/null 2>&1 || { log_error "i3 not found in PATH"; return 1; }
   command -v rofi >/dev/null 2>&1 || { log_error "rofi not found in PATH"; return 1; }
   command -v alacritty >/dev/null 2>&1 || { log_error "alacritty not found in PATH"; return 1; }
+  command -v clipmenud >/dev/null 2>&1 || { log_error "clipmenud not found in PATH"; return 1; }
 
   [[ -f "${target_home}/.config/i3/config" ]] || { log_error "i3 config not deployed"; return 1; }
   [[ -d "${target_home}/.config/i3/scripts" ]] || { log_error "i3 scripts directory not deployed"; return 1; }

@@ -13,10 +13,11 @@ flameshot
 slop
 ffmpeg
 imagemagick
-# Clipboard
-clipmenu
+# Clipboard (clipmenu built from source, see 30-desktop-i3.sh)
 xsel
-clipnotify
+build-essential
+libx11-dev
+libxfixes-dev
 # Color picker
 gpick
 # Notifications
