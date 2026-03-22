@@ -151,7 +151,7 @@ verify_target_user_login() {
   local username="$1"
 
   # shellcheck disable=SC2016
-  runuser --login -u "$username" -- bash -lc 'id && test -w "$HOME" && test "$SHELL" = /bin/bash'
+  runuser -u "$username" -- bash -lc 'id && test -w "$HOME" && test "$SHELL" = /bin/bash'
 }
 
 verify_migration_checklist() {
@@ -181,7 +181,7 @@ verify_migration_checklist() {
         ;;
       "verify home directory is writable")
         # shellcheck disable=SC2016
-        if ! runuser --login -u "${target_user}" -- bash -lc 'test -w "$HOME"'; then
+        if ! runuser -u "${target_user}" -- bash -lc 'test -w "$HOME"'; then
           log_error "Target user ${target_user} home directory is not writable."
           return 1
         fi
