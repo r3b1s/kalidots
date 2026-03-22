@@ -1,8 +1,12 @@
 # i3 config - Omarchy-translated keybindings for Kali desktop
 # Modifier: Super/Windows key (Mod4)
+# Modifier ordering convention: Shift > Ctrl > Alt
 
 set $mod Mod4
 set $term alacritty
+set $scripts ~/.config/i3/scripts
+
+# Colors
 set $bg-color #2f343f
 set $text-color #f3f4f5
 set $inactive-bg #2d2d2d
@@ -13,51 +17,79 @@ set $indicator #5294e2
 # Font
 font pango:monospace 10
 
-# Terminal
-bindsym $mod+Return exec --no-startup-id $term
+# Settings
+focus_follows_mouse yes
+floating_modifier $mod
 
-# Launcher
-bindsym $mod+space exec --no-startup-id rofi -show drun
+# ─── Core Actions ───────────────────────────────────────────────────────────────
 
-# Close window
+bindsym $mod+Return exec --no-startup-id rofi -show drun
+bindsym $mod+space exec --no-startup-id rofi -show run
 bindsym $mod+w kill
+bindsym $mod+Shift+t exec --no-startup-id $term
+bindsym $mod+e exec --no-startup-id thunar
+bindsym $mod+b exec --no-startup-id firefox-esr
+bindsym $mod+Escape exec --no-startup-id $scripts/power-menu.sh
 
-# Fullscreen toggle
-bindsym $mod+f fullscreen toggle
+# ─── Focus (HJKL + arrows) ─────────────────────────────────────────────────────
 
-# Focus bindings (hjkl, Omarchy-style)
 bindsym $mod+h focus left
 bindsym $mod+j focus down
 bindsym $mod+k focus up
 bindsym $mod+l focus right
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
 
-# Move window bindings
-bindsym $mod+Shift+h move left
-bindsym $mod+Shift+j move down
-bindsym $mod+Shift+k move up
-bindsym $mod+Shift+l move right
+# ─── Move Window + Follow (Shift+HJKL + arrows) ────────────────────────────────
 
-# Resize bindings
-bindsym $mod+ctrl+h resize shrink width 50 px
-bindsym $mod+ctrl+l resize grow width 50 px
-bindsym $mod+ctrl+k resize grow height 50 px
-bindsym $mod+ctrl+j resize shrink height 50 px
+bindsym $mod+Shift+h move left; focus left
+bindsym $mod+Shift+j move down; focus down
+bindsym $mod+Shift+k move up; focus up
+bindsym $mod+Shift+l move right; focus right
+bindsym $mod+Shift+Left move left; focus left
+bindsym $mod+Shift+Down move down; focus down
+bindsym $mod+Shift+Up move up; focus up
+bindsym $mod+Shift+Right move right; focus right
 
-# Layout and split
-bindsym $mod+v split v
-bindsym $mod+b split h
-bindsym $mod+s layout stacking
-bindsym $mod+e layout toggle split
-bindsym $mod+t layout tabbed
+# ─── Resize (Ctrl+HJKL + arrows, 5 ppt) ────────────────────────────────────────
 
-# Floating toggle
-bindsym $mod+Shift+space floating toggle
+bindsym $mod+Ctrl+h resize shrink width 5 ppt
+bindsym $mod+Ctrl+l resize grow width 5 ppt
+bindsym $mod+Ctrl+k resize grow height 5 ppt
+bindsym $mod+Ctrl+j resize shrink height 5 ppt
+bindsym $mod+Ctrl+Left resize shrink width 5 ppt
+bindsym $mod+Ctrl+Right resize grow width 5 ppt
+bindsym $mod+Ctrl+Up resize grow height 5 ppt
+bindsym $mod+Ctrl+Down resize shrink height 5 ppt
 
-# Reload and restart i3
-bindsym $mod+Shift+r restart
-bindsym $mod+Shift+q exec "i3-nagbar -t warning -m 'Exit i3?' -b 'Yes' 'i3-msg exit'"
+# ─── Nudge Floating (Shift+Alt+HJKL, 20px) ─────────────────────────────────────
 
-# Workspace names
+bindsym $mod+Shift+Mod1+h move left 20 px
+bindsym $mod+Shift+Mod1+j move down 20 px
+bindsym $mod+Shift+Mod1+k move up 20 px
+bindsym $mod+Shift+Mod1+l move right 20 px
+
+# ─── Fullscreen ─────────────────────────────────────────────────────────────────
+
+bindsym $mod+f exec --no-startup-id $scripts/toggle-maximize.sh
+bindsym $mod+Shift+f fullscreen toggle
+
+# ─── Floating ───────────────────────────────────────────────────────────────────
+
+bindsym $mod+Shift+Ctrl+Mod1+f floating toggle
+
+# ─── Layout / Split ─────────────────────────────────────────────────────────────
+
+bindsym $mod+Mod1+apostrophe split h
+bindsym $mod+Mod1+5 split v
+bindsym $mod+Mod1+s layout toggle split
+bindsym $mod+Ctrl+Mod1+s layout stacking
+bindsym $mod+Shift+Ctrl+Mod1+s layout tabbed
+
+# ─── Workspaces ─────────────────────────────────────────────────────────────────
+
 set $ws1 "1"
 set $ws2 "2"
 set $ws3 "3"
@@ -69,7 +101,6 @@ set $ws8 "8"
 set $ws9 "9"
 set $ws10 "10"
 
-# Switch to workspace
 bindsym $mod+1 workspace number $ws1
 bindsym $mod+2 workspace number $ws2
 bindsym $mod+3 workspace number $ws3
@@ -81,34 +112,194 @@ bindsym $mod+8 workspace number $ws8
 bindsym $mod+9 workspace number $ws9
 bindsym $mod+0 workspace number $ws10
 
-# Move container to workspace
-bindsym $mod+Shift+1 move container to workspace number $ws1
-bindsym $mod+Shift+2 move container to workspace number $ws2
-bindsym $mod+Shift+3 move container to workspace number $ws3
-bindsym $mod+Shift+4 move container to workspace number $ws4
-bindsym $mod+Shift+5 move container to workspace number $ws5
-bindsym $mod+Shift+6 move container to workspace number $ws6
-bindsym $mod+Shift+7 move container to workspace number $ws7
-bindsym $mod+Shift+8 move container to workspace number $ws8
-bindsym $mod+Shift+9 move container to workspace number $ws9
-bindsym $mod+Shift+0 move container to workspace number $ws10
+bindsym $mod+Tab workspace next
+bindsym $mod+Shift+Tab workspace prev
+bindsym $mod+Ctrl+Tab workspace back_and_forth
 
-# Directory shortcuts (resolved at install time via sed)
-bindsym $mod+ctrl+1 exec --no-startup-id alacritty --working-directory __TARGET_HOME__
-bindsym $mod+ctrl+2 exec --no-startup-id alacritty --working-directory __TARGET_HOME__/Work
-bindsym $mod+ctrl+3 exec --no-startup-id alacritty --working-directory __TARGET_HOME__/repos
+# Mouse scroll workspace cycling
+bindsym --whole-window $mod+button4 workspace next
+bindsym --whole-window $mod+button5 workspace prev
 
-# Startup
-exec --no-startup-id feh --bg-fill __TARGET_HOME__/.wallpaper 2>/dev/null
+# ─── Move Container to Workspace + Follow (Shift+N) ────────────────────────────
+
+bindsym $mod+Shift+1 move container to workspace number $ws1; workspace number $ws1
+bindsym $mod+Shift+2 move container to workspace number $ws2; workspace number $ws2
+bindsym $mod+Shift+3 move container to workspace number $ws3; workspace number $ws3
+bindsym $mod+Shift+4 move container to workspace number $ws4; workspace number $ws4
+bindsym $mod+Shift+5 move container to workspace number $ws5; workspace number $ws5
+bindsym $mod+Shift+6 move container to workspace number $ws6; workspace number $ws6
+bindsym $mod+Shift+7 move container to workspace number $ws7; workspace number $ws7
+bindsym $mod+Shift+8 move container to workspace number $ws8; workspace number $ws8
+bindsym $mod+Shift+9 move container to workspace number $ws9; workspace number $ws9
+bindsym $mod+Shift+0 move container to workspace number $ws10; workspace number $ws10
+
+# ─── Silent Move to Workspace (Shift+Alt+N) ────────────────────────────────────
+
+bindsym $mod+Shift+Mod1+1 move container to workspace number $ws1
+bindsym $mod+Shift+Mod1+2 move container to workspace number $ws2
+bindsym $mod+Shift+Mod1+3 move container to workspace number $ws3
+bindsym $mod+Shift+Mod1+4 move container to workspace number $ws4
+bindsym $mod+Shift+Mod1+5 move container to workspace number $ws5
+bindsym $mod+Shift+Mod1+6 move container to workspace number $ws6
+bindsym $mod+Shift+Mod1+7 move container to workspace number $ws7
+bindsym $mod+Shift+Mod1+8 move container to workspace number $ws8
+bindsym $mod+Shift+Mod1+9 move container to workspace number $ws9
+bindsym $mod+Shift+Mod1+0 move container to workspace number $ws10
+
+# ─── Window Cycling ─────────────────────────────────────────────────────────────
+
+bindsym Mod1+Tab focus next
+bindsym Mod1+Shift+Tab focus prev
+
+# ─── Monitor / Output ──────────────────────────────────────────────────────────
+
+bindsym $mod+Ctrl+Mod1+h move workspace to output left
+bindsym $mod+Ctrl+Mod1+j move workspace to output down
+bindsym $mod+Ctrl+Mod1+k move workspace to output up
+bindsym $mod+Ctrl+Mod1+l move workspace to output right
+bindsym $mod+Ctrl+Mod1+Left move workspace to output left
+bindsym $mod+Ctrl+Mod1+Down move workspace to output down
+bindsym $mod+Ctrl+Mod1+Up move workspace to output up
+bindsym $mod+Ctrl+Mod1+Right move workspace to output right
+
+# ─── General-Purpose Scratchpads (mark-based) ──────────────────────────────────
+
+bindsym $mod+period [con_mark="sp1"] scratchpad show
+bindsym $mod+Shift+Ctrl+period mark sp1; move scratchpad
+bindsym $mod+u [con_mark="sp2"] scratchpad show
+bindsym $mod+Shift+Ctrl+u mark sp2; move scratchpad
+
+# ─── Auto-Launching Scratchpads ────────────────────────────────────────────────
+
+bindsym $mod+p exec --no-startup-id $scripts/scratchpad-launch.sh sp-btop "$term -e btop"
+bindsym $mod+a exec --no-startup-id $scripts/scratchpad-launch.sh sp-browser firefox-esr
+bindsym $mod+Shift+e exec --no-startup-id $scripts/scratchpad-launch.sh sp-email thunderbird
+bindsym $mod+t exec --no-startup-id $scripts/scratchpad-launch.sh sp-term "$term"
+bindsym $mod+Shift+p exec --no-startup-id $scripts/scratchpad-launch.sh sp-keepassxc "flatpak run org.keepassxc.KeePassXC"
+
+# ─── Kali Directory Shortcuts ──────────────────────────────────────────────────
+# Ctrl+KEY = terminal, Ctrl+Alt+KEY = thunar
+
+bindsym $mod+Ctrl+1 exec --no-startup-id $term --working-directory /usr/share
+bindsym $mod+Ctrl+w exec --no-startup-id $term --working-directory /usr/share/wordlists
+bindsym $mod+Ctrl+s exec --no-startup-id $term --working-directory /usr/share/seclists
+bindsym $mod+Ctrl+2 exec --no-startup-id $term --working-directory /opt
+bindsym $mod+Ctrl+3 exec --no-startup-id $term --working-directory /tmp
+bindsym $mod+Ctrl+4 exec --no-startup-id $term --working-directory /usr/share/exploitdb
+bindsym $mod+Ctrl+5 exec --no-startup-id $term --working-directory /usr/share/metasploit-framework
+bindsym $mod+Ctrl+6 exec --no-startup-id $term --working-directory /usr/share/nmap
+bindsym $mod+Ctrl+7 exec --no-startup-id $term --working-directory /usr/share/webshells
+bindsym $mod+Ctrl+0 exec --no-startup-id $term --working-directory /var/www/html
+
+bindsym $mod+Ctrl+Mod1+1 exec --no-startup-id thunar /usr/share
+bindsym $mod+Ctrl+Mod1+w exec --no-startup-id thunar /usr/share/wordlists
+bindsym $mod+Ctrl+Mod1+s exec --no-startup-id thunar /usr/share/seclists
+bindsym $mod+Ctrl+Mod1+2 exec --no-startup-id thunar /opt
+bindsym $mod+Ctrl+Mod1+3 exec --no-startup-id thunar /tmp
+bindsym $mod+Ctrl+Mod1+4 exec --no-startup-id thunar /usr/share/exploitdb
+bindsym $mod+Ctrl+Mod1+5 exec --no-startup-id thunar /usr/share/metasploit-framework
+bindsym $mod+Ctrl+Mod1+6 exec --no-startup-id thunar /usr/share/nmap
+bindsym $mod+Ctrl+Mod1+7 exec --no-startup-id thunar /usr/share/webshells
+bindsym $mod+Ctrl+Mod1+0 exec --no-startup-id thunar /var/www/html
+
+# ─── Screenshots / Recording ───────────────────────────────────────────────────
+
+bindsym $mod+semicolon exec --no-startup-id scrot -s -f '/tmp/screenshot-%Y%m%d-%H%M%S.png' -e 'xclip -selection clipboard -t image/png < $f && notify-send "Screenshot" "Copied to clipboard"'
+bindsym $mod+Ctrl+semicolon exec --no-startup-id flameshot gui
+bindsym $mod+Mod1+semicolon exec --no-startup-id $scripts/screen-record.sh --fullscreen
+bindsym $mod+r exec --no-startup-id $scripts/screen-record.sh --area
+bindsym $mod+Ctrl+r exec --no-startup-id $scripts/screen-record.sh --gif
+bindsym $mod+Shift+r exec --no-startup-id $scripts/screen-record.sh --stop
+
+# ─── Notifications (dunstctl) ──────────────────────────────────────────────────
+
+bindsym $mod+q exec --no-startup-id dunstctl close
+bindsym $mod+Shift+q exec --no-startup-id dunstctl close-all
+bindsym $mod+Ctrl+q exec --no-startup-id $scripts/toggle-dnd.sh
+
+# ─── Clipboard ──────────────────────────────────────────────────────────────────
+
+bindsym $mod+c exec --no-startup-id xdotool key ctrl+c
+bindsym $mod+v exec --no-startup-id xdotool key ctrl+v
+bindsym $mod+x exec --no-startup-id xdotool key ctrl+x
+bindsym $mod+Ctrl+v exec --no-startup-id CM_LAUNCHER=rofi clipmenu
+bindsym $mod+Shift+Ctrl+Mod1+v exec --no-startup-id $scripts/clipboard-clear.sh
+
+# ─── App Launchers (non-scratchpad) ─────────────────────────────────────────────
+
+bindsym $mod+Ctrl+b exec --no-startup-id qutebrowser
+bindsym $mod+Ctrl+m exec --no-startup-id remmina
+bindsym $mod+Shift+d exec --no-startup-id $term -e podman-tui
+
+# ─── System / Controls ─────────────────────────────────────────────────────────
+
+bindsym $mod+Shift+Ctrl+Mod1+r restart
+bindsym $mod+Shift+Ctrl+Mod1+q exec "i3-nagbar -t warning -m 'Exit i3?' -b 'Yes' 'i3-msg exit'"
+bindsym $mod+Mod1+i exec --no-startup-id i3lock
+bindsym $mod+Ctrl+i exec --no-startup-id $scripts/toggle-autolock.sh
+bindsym $mod+Ctrl+Mod1+a exec --no-startup-id pavucontrol
+bindsym $mod+Ctrl+Mod1+b exec --no-startup-id blueman-manager
+bindsym $mod+Shift+Ctrl+w exec --no-startup-id $term -e nmtui
+bindsym $mod+Shift+w exec --no-startup-id nm-connection-editor
+
+# ─── Display / Appearance ──────────────────────────────────────────────────────
+
+bindsym $mod+BackSpace exec --no-startup-id picom-trans -c -o -t
+bindsym $mod+Shift+BackSpace exec --no-startup-id $scripts/cycle-gaps.sh
+bindsym $mod+Ctrl+BackSpace exec --no-startup-id $scripts/cycle-borders.sh
+bindsym $mod+Shift+Ctrl+Mod1+g exec --no-startup-id $scripts/toggle-maximize.sh
+bindsym $mod+Mod1+equal exec --no-startup-id $scripts/display-scale.sh in
+bindsym $mod+Mod1+minus exec --no-startup-id $scripts/display-scale.sh out
+bindsym $mod+Shift+space bar mode toggle
+
+# ─── Zoom ───────────────────────────────────────────────────────────────────────
+
+bindsym $mod+Ctrl+z exec --no-startup-id $scripts/zoom.sh in
+bindsym $mod+Ctrl+Mod1+z exec --no-startup-id $scripts/zoom.sh reset
+
+# ─── Color Picker ──────────────────────────────────────────────────────────────
+
+bindsym $mod+Shift+Ctrl+Mod1+p exec --no-startup-id gpick
+
+# ─── Media Keys ─────────────────────────────────────────────────────────────────
+
+bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +5%
+bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ -5%
+bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ toggle
+bindsym XF86AudioMicMute exec --no-startup-id pactl set-source-mute @DEFAULT_SOURCE@ toggle
+bindsym XF86AudioPlay exec --no-startup-id playerctl play-pause
+bindsym XF86AudioNext exec --no-startup-id playerctl next
+bindsym XF86AudioPrev exec --no-startup-id playerctl previous
+
+# ─── Keybinding Preview ────────────────────────────────────────────────────────
+
+bindsym $mod+Shift+Ctrl+Mod1+k exec --no-startup-id $scripts/keybinding-preview.sh
+
+# ─── VM Passthrough Mode ───────────────────────────────────────────────────────
+
+mode "passthru" {
+  bindsym Delete mode "default"; exec --no-startup-id notify-send "Passthrough" "Disabled"
+}
+bindsym $mod+Delete mode "passthru"; exec --no-startup-id notify-send "Passthrough" "Enabled — press Delete to exit"
+
+# ─── Startup ───────────────────────────────────────────────────────────────────
+
 exec --no-startup-id picom -b
+exec --no-startup-id feh --bg-fill __TARGET_HOME__/.wallpaper 2>/dev/null
+exec --no-startup-id dunst
+exec --no-startup-id nm-applet
+exec --no-startup-id clipmenud
+exec --no-startup-id xautolock -time 10 -locker i3lock
 
-# Bar (i3status fallback; i3status-rust configured in plan 02)
+# ─── Bar ────────────────────────────────────────────────────────────────────────
+
 bar {
-    position top
-    status_command i3status
+  position top
+  status_command i3status
 }
 
-# Gaps and appearance
+# ─── Gaps and Appearance ───────────────────────────────────────────────────────
+
 gaps inner 8
 gaps outer 2
 default_border pixel 2

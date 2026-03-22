@@ -6,3 +6,40 @@ i3status
 feh
 picom
 xss-lock
+# Screenshots and recording
+scrot
+xclip
+flameshot
+slop
+ffmpeg
+imagemagick
+# Clipboard
+clipmenu
+xsel
+clipnotify
+# Color picker
+gpick
+# Notifications
+dunst
+# Audio and media
+pulseaudio-utils
+playerctl
+# File manager
+thunar
+# Window management helpers
+xdotool
+xautolock
+i3lock
+# Flatpak (for KeePassXC)
+flatpak
+# Network / Bluetooth
+network-manager-gnome
+pavucontrol
+blueman
+# Browsers
+qutebrowser
+firefox-esr
+# Remote desktop
+remmina
+# Email
+thunderbird

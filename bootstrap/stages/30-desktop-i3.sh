@@ -32,6 +32,22 @@ stage_apply() {
   install_user_dir ".config/i3"
   install_user_file "${tmp_config}" ".config/i3/config"
   rm -f "${tmp_config}"
+
+  # Deploy helper scripts
+  install_user_dir ".config/i3/scripts"
+  local script
+  for script in "${BOOTSTRAP_ROOT}/files/desktop/i3/scripts/"*.sh; do
+    [[ -f "${script}" ]] || continue
+    install_user_file "${script}" ".config/i3/scripts/$(basename "${script}")" 755
+  done
+
+  # Flatpak setup for KeePassXC
+  if command -v flatpak >/dev/null 2>&1; then
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    flatpak install -y --noninteractive flathub org.keepassxc.KeePassXC || log_warn "KeePassXC flatpak install failed — may need manual install"
+  else
+    log_warn "flatpak not available — skipping KeePassXC install"
+  fi
 }
 
 stage_verify() {
@@ -45,6 +61,13 @@ stage_verify() {
   command -v alacritty >/dev/null 2>&1 || { log_error "alacritty not found in PATH"; return 1; }
 
   [[ -f "${target_home}/.config/i3/config" ]] || { log_error "i3 config not deployed"; return 1; }
+  [[ -d "${target_home}/.config/i3/scripts" ]] || { log_error "i3 scripts directory not deployed"; return 1; }
   grep -q 'bindsym $mod+h focus left' "${target_home}/.config/i3/config" || { log_error "i3 config missing hjkl bindings"; return 1; }
   grep -q '__TARGET_HOME__' "${target_home}/.config/i3/config" && { log_error "i3 config still has unresolved placeholders"; return 1; }
+
+  # Verify key scripts are deployed and executable
+  local required_scripts=(toggle-maximize.sh scratchpad-launch.sh power-menu.sh screen-record.sh)
+  for script in "${required_scripts[@]}"; do
+    [[ -x "${target_home}/.config/i3/scripts/${script}" ]] || { log_error "Script not deployed or not executable: ${script}"; return 1; }
+  done
 }
