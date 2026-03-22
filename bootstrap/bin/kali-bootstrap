@@ -43,6 +43,11 @@ main() {
   ensure_bootstrap_deps
   parse_cli_args "$@"
 
+  # Auto-detect bootstrap user from sudo if not explicitly provided
+  if [[ -z "${BOOTSTRAP_USER:-}" && -n "${SUDO_USER:-}" ]]; then
+    BOOTSTRAP_USER="${SUDO_USER}"
+  fi
+
   if [[ "${#SELECTED_PROFILES[@]}" -eq 0 ]]; then
     choose_profiles_interactive
   fi
