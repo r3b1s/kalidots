@@ -306,7 +306,7 @@ default_border pixel 2
 
 # Window colors
 # class                 border          backgr          text            indicator       child_border
-client.focused          $bg-color       $bg-color       $text-color     $indicator      $bg-color
+client.focused          $indicator      $bg-color       $text-color     $indicator      $indicator
 client.unfocused        $inactive-bg    $inactive-bg    $inactive-text  $inactive-bg    $inactive-bg
 client.focused_inactive $inactive-bg    $inactive-bg    $inactive-text  $inactive-bg    $inactive-bg
 client.urgent           $urgent-bg      $urgent-bg      $text-color     $urgent-bg      $urgent-bg

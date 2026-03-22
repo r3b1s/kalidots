@@ -2,6 +2,7 @@
 i3
 rofi
 alacritty
+fontconfig
 i3status
 feh
 picom

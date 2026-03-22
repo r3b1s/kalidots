@@ -36,6 +36,27 @@ install_i3status_rs() {
   rm -rf "${build_dir}"
 }
 
+install_nerd_font() {
+  local font_dir="/usr/local/share/fonts/NerdFonts"
+  if [[ -d "${font_dir}" ]] && ls "${font_dir}"/*.ttf >/dev/null 2>&1; then
+    log_info "JetBrainsMono Nerd Font already installed"
+    return 0
+  fi
+
+  log_info "Installing JetBrainsMono Nerd Font"
+  local tmp_zip
+  tmp_zip="$(mktemp)"
+  if ! curl -fSL -o "${tmp_zip}" "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz"; then
+    log_warn "Failed to download Nerd Font — terminal may render poorly"
+    rm -f "${tmp_zip}"
+    return 0
+  fi
+  install -d "${font_dir}"
+  tar -xf "${tmp_zip}" -C "${font_dir}"
+  rm -f "${tmp_zip}"
+  fc-cache -f "${font_dir}"
+}
+
 install_starship() {
   if command -v starship >/dev/null 2>&1; then
     log_info "Starship already installed: $(starship --version | head -1)"
@@ -69,6 +90,9 @@ stage_apply() {
   # Deploy Rofi config
   install_user_dir ".config/rofi"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/rofi/config.rasi" ".config/rofi/config.rasi"
+
+  # Install Nerd Font for Alacritty
+  install_nerd_font
 
   # Deploy Alacritty config
   install_user_dir ".config/alacritty"
