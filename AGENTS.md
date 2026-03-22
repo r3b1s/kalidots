@@ -21,7 +21,7 @@ tests/bootstrap/lib/        Unit tests for library functions.
 
 ### Profiles and stages
 
-There are five **profiles**: `base`, `desktop`, `tools`, `secrets`, `llm`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order.
+There are six **profiles**: `base`, `desktop`, `keyboard`, `tools`, `secrets`, `llm`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order. The `keyboard` profile is separate from `desktop` — it covers system-level/low-level keyboard configuration (e.g. Kanata), not desktop-environment-specific keybindings.
 
 Stage `21-bootstrap-user-cleanup` has no profile — it only runs when explicitly requested via `--stage bootstrap-user-cleanup`.
 
@@ -94,6 +94,10 @@ These are set by `cli.sh` and used throughout:
 - Whitespace trimming uses the POSIX parameter expansion pattern: `${var#"${var%%[![:space:]]*}"}` (see `trim_whitespace` in `users.sh`).
 - File deployment uses `install -D -m MODE -o OWNER -g GROUP SRC DEST` for atomic ownership + permissions.
 - Config file paths under the user's home use `install_user_file` from `desktop.sh`.
+
+### Keyboard vs Desktop profile boundary
+
+The `keyboard` profile covers system-level/low-level keyboard configuration (Kanata, key remapping, input device setup). Desktop-environment-specific keybindings (i3 bindsym, Hyprland binds) belong in `desktop`. When adding new keyboard-related stages, use the `keyboard` profile and the 35-39 numbering range.
 
 ### Adding a new stage
 

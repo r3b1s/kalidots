@@ -23,7 +23,8 @@ Profiles group stages by purpose. Select one or more at runtime.
 | Profile | What it does |
 |---------|-------------|
 | **base** | Bootstrap prerequisites (jq, gum, git, etc.) and target user creation |
-| **desktop** | i3 window manager, Rofi, Alacritty, Starship prompt, Kanata keyboard remapper |
+| **desktop** | i3 window manager, Rofi, Alacritty, Starship prompt |
+| **keyboard** | Kanata keyboard remapper with systemd service, udev rules, optional enthium layout |
 | **tools** | 60+ security packages (nmap, metasploit, burpsuite, etc.), language runtimes, telemetry opt-outs |
 | **secrets** | SSH directory and KeePassXC database import with permission enforcement |
 | **llm** | LLM auth documentation and config templates (Codex, Claude, Gemini) |
@@ -39,7 +40,7 @@ Each stage declares which profiles it belongs to, an `stage_apply` function, and
 | `bootstrap-user-cleanup` | *(explicit only)* | Remove the bootstrap user — requires `--stage` flag |
 | `desktop-i3` | desktop | Deploy i3 config with hjkl keybindings, install rofi + alacritty |
 | `desktop-apps` | desktop | Starship prompt, shell configs, bashrc.d drop-ins |
-| `kanata` | desktop | Kanata keyboard remapper with systemd service + udev rules |
+| `kanata` | keyboard | Kanata keyboard remapper with systemd service + udev rules |
 | `tools-apt` | tools | 60+ security tool packages from apt |
 | `tools-runtimes` | tools | Rust toolchain, Go tools, pipx, bundler, reference repos |
 | `tools-privacy` | tools | Telemetry opt-outs (Go telemetry, registry enforcement) |
@@ -52,7 +53,7 @@ Each stage declares which profiles it belongs to, an `stage_apply` function, and
 sudo ./bootstrap/bin/kali-bootstrap [OPTIONS]
 
 Options:
-  --profile PROFILE       Profile to activate (repeatable: base, desktop, tools, llm, secrets)
+  --profile PROFILE       Profile to activate (repeatable: base, desktop, keyboard, tools, llm, secrets)
   --stage STAGE_ID        Run specific stage(s) by ID, overrides profile matching (repeatable)
   --state-file PATH       Custom state file path (default: .bootstrap/state.json)
   --yes                   Skip confirmation prompts
@@ -101,7 +102,7 @@ Each profile has a policy file (`bootstrap/files/packages/*-policy.env`) control
 - **Terminal**: Alacritty
 - **Launcher**: Rofi (drun mode)
 - **Shell**: Vi-mode readline, Starship prompt, bashrc.d drop-in system
-- **Keyboard**: Kanata remapper via systemd + udev (uinput group)
+- **Keyboard** *(separate `keyboard` profile)*: Kanata remapper via systemd + udev (uinput group), optional enthium layout
 
 ## Repository Structure
 
@@ -124,7 +125,7 @@ bootstrap/
 │   ├── 21-bootstrap-user-cleanup.sh
 │   ├── 30-desktop-i3.sh
 │   ├── 31-desktop-apps.sh
-│   ├── 32-kanata.sh
+│   ├── 35-keyboard-kanata.sh
 │   ├── 40-tools-apt.sh
 │   ├── 41-tools-runtimes.sh
 │   ├── 42-tools-privacy.sh
@@ -212,7 +213,7 @@ flowchart TD
         S31[Install Starship prompt<br/>Deploy rofi, alacritty, shell configs<br/>Set up bashrc.d drop-ins]
     end
 
-    subgraph "Stage: kanata (desktop)"
+    subgraph "Stage: kanata (keyboard)"
         S32[Create uinput group + udev rules<br/>Deploy layout.kbd<br/>Install + enable systemd service]
     end
 

@@ -3,7 +3,7 @@
 # shellcheck disable=SC2034
 stage_id="kanata"
 stage_description="Install Kanata keyboard remapper with uinput group, udev rule, and systemd service"
-stage_profiles=("desktop")
+stage_profiles=("keyboard")
 
 # shellcheck disable=SC1091
 source "${BOOTSTRAP_ROOT}/lib/packages.sh"
@@ -16,6 +16,8 @@ KANATA_BINARY="/usr/local/bin/kanata"
 KANATA_CONFIG_DIR="/etc/kanata"
 KANATA_LAYOUT="${KANATA_CONFIG_DIR}/layout.kbd"
 KANATA_RELEASE_URL="https://github.com/jtroo/kanata/releases/latest/download/kanata"
+KANATA_ENTHIUM_REPO="https://github.com/r3b1s/kanata-enthium.git"
+KANATA_ENTHIUM_DIR="${KANATA_CONFIG_DIR}/kanata-enthium"
 
 install_kanata_binary() {
   # Prefer apt if available
@@ -70,14 +72,35 @@ stage_apply() {
   # 4. Load uinput module persistently
   echo "uinput" > /etc/modules-load.d/uinput.conf
 
-  # 5. Deploy layout file (use custom if KANATA_LAYOUT_FILE is set, otherwise default)
+  # 5. Deploy layout file
   mkdir -p "${KANATA_CONFIG_DIR}"
-  local layout_source="${KANATA_LAYOUT_FILE:-${BOOTSTRAP_ROOT}/files/desktop/kanata/layout.kbd}"
-  if [[ ! -f "${layout_source}" ]]; then
-    log_error "Kanata layout source not found: ${layout_source}"
-    return 1
+
+  if [[ -n "${KANATA_LAYOUT_FILE:-}" ]]; then
+    # Explicit layout override via env var
+    if [[ ! -f "${KANATA_LAYOUT_FILE}" ]]; then
+      log_error "Kanata layout source not found: ${KANATA_LAYOUT_FILE}"
+      return 1
+    fi
+    install -m 644 "${KANATA_LAYOUT_FILE}" "${KANATA_LAYOUT}"
+  elif [[ "${ASSUME_YES:-}" != "true" ]] && command -v gum >/dev/null 2>&1 \
+       && gum confirm "Install kanata-enthium layout from ${KANATA_ENTHIUM_REPO}?"; then
+    log_info "Cloning kanata-enthium layout"
+    if [[ -d "${KANATA_ENTHIUM_DIR}" ]]; then
+      git -C "${KANATA_ENTHIUM_DIR}" pull --ff-only
+    else
+      git clone "${KANATA_ENTHIUM_REPO}" "${KANATA_ENTHIUM_DIR}"
+    fi
+    if [[ -f "${KANATA_ENTHIUM_DIR}/enthium.kbd" ]]; then
+      ln -sf "${KANATA_ENTHIUM_DIR}/enthium.kbd" "${KANATA_LAYOUT}"
+      log_info "Linked kanata-enthium layout to ${KANATA_LAYOUT}"
+    else
+      log_error "kanata-enthium repo cloned but enthium.kbd not found"
+      return 1
+    fi
+  else
+    # Default passthrough layout
+    install -m 644 "${BOOTSTRAP_ROOT}/files/desktop/kanata/layout.kbd" "${KANATA_LAYOUT}"
   fi
-  install -m 644 "${layout_source}" "${KANATA_LAYOUT}"
 
   # 6. Install kanata binary
   install_kanata_binary

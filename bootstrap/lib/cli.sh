@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-readonly AVAILABLE_PROFILES=(base desktop tools llm secrets)
+readonly AVAILABLE_PROFILES=(base desktop keyboard tools llm secrets)
 
 STATE_FILE="${STATE_FILE:-./.bootstrap/state.json}"
 ASSUME_YES="${ASSUME_YES:-false}"
