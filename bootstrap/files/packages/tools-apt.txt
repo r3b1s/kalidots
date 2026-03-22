@@ -38,7 +38,7 @@ hashcat
 hydra
 
 # --- Active Directory ---
-crackmapexec
+netexec
 bloodhound
 neo4j
 impacket-scripts
@@ -50,7 +50,6 @@ seclists
 # --- Forensics and Reversing ---
 binwalk
 foremost
-volatility3
 steghide
 exiftool
 

@@ -18,6 +18,10 @@ xsel
 build-essential
 libx11-dev
 libxfixes-dev
+# i3status-rs build deps (built from source, see 31-desktop-apps.sh)
+libssl-dev
+libsensors-dev
+libpulse-dev
 # Color picker
 gpick
 # Notifications

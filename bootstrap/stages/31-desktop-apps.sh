@@ -12,6 +12,30 @@ source "${BOOTSTRAP_ROOT}/lib/desktop.sh"
 # shellcheck disable=SC1091
 source "${BOOTSTRAP_ROOT}/lib/users.sh"
 
+install_i3status_rs() {
+  if command -v i3status-rs >/dev/null 2>&1; then
+    log_info "i3status-rs already installed"
+    return 0
+  fi
+
+  if ! command -v cargo >/dev/null 2>&1; then
+    log_warn "cargo not available — skipping i3status-rs build (install tools profile for Rust toolchain)"
+    return 0
+  fi
+
+  log_info "Building i3status-rs from source"
+  local build_dir
+  build_dir="$(mktemp -d)"
+  git clone --depth 1 https://github.com/greshake/i3status-rust.git "${build_dir}"
+  cargo install --path "${build_dir}" --locked --root /usr/local
+  # Deploy icons and themes to system share
+  if [[ -d "${build_dir}/files" ]]; then
+    install -d /usr/local/share/i3status-rust
+    cp -r "${build_dir}/files/"* /usr/local/share/i3status-rust/
+  fi
+  rm -rf "${build_dir}"
+}
+
 install_starship() {
   if command -v starship >/dev/null 2>&1; then
     log_info "Starship already installed: $(starship --version | head -1)"
@@ -80,6 +104,9 @@ BASHRC_DROPIN
   # Deploy Starship config
   install_user_dir ".config"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/starship.toml" ".config/starship.toml"
+
+  # Build i3status-rs if cargo is available
+  install_i3status_rs
 
   # Upgrade bar config if i3status-rs is available
   upgrade_i3_bar_config "${target_home}"
