@@ -19,6 +19,7 @@ clone_or_sync_repo() {
 
   if [[ -d "${dest}/.git" ]]; then
     log_info "Repo already cloned at ${dest}; pulling"
+    git config --global --add safe.directory "${dest}" 2>/dev/null || true
     git -C "${dest}" pull --ff-only || log_warn "pull failed for ${dest}; skipping"
   else
     log_info "Cloning ${url} -> ${dest}"
@@ -138,10 +139,10 @@ stage_verify() {
 
   [[ -f "${target_home}/.bashrc.d/51-golang.sh" ]] || { log_error "Go PATH drop-in not deployed"; return 1; }
   [[ -f "${target_home}/.bashrc.d/52-cargo.sh" ]] || { log_error "Cargo PATH drop-in not deployed"; return 1; }
-  runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" HOME="${target_home}" bash -lc 'command -v cargo' >/dev/null 2>&1 || { log_error "cargo not available for target user"; return 1; }
+  runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" HOME="${target_home}" bash -c 'command -v cargo' >/dev/null 2>&1 || { log_error "cargo not available for target user"; return 1; }
   command -v gum >/dev/null 2>&1 || { log_error "gum not available"; return 1; }
-  runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${target_home}/go" HOME="${target_home}" bash -lc 'command -v gopls' >/dev/null 2>&1 || { log_error "gopls not available for target user"; return 1; }
-  runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" HOME="${target_home}" bash -lc 'command -v pwn' >/dev/null 2>&1 || { log_error "pwntools entrypoint not available for target user"; return 1; }
+  runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${target_home}/go" HOME="${target_home}" bash -c 'command -v gopls' >/dev/null 2>&1 || { log_error "gopls not available for target user"; return 1; }
+  runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" HOME="${target_home}" bash -c 'command -v pwn' >/dev/null 2>&1 || { log_error "pwntools entrypoint not available for target user"; return 1; }
   [[ -d "/opt/tools/PayloadsAllTheThings/.git" ]] || { log_error "PayloadsAllTheThings not cloned"; return 1; }
 
   log_info "tools-runtimes stage verified"
