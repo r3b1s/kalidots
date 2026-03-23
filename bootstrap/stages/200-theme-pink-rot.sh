@@ -13,7 +13,10 @@ source "${BOOTSTRAP_ROOT}/lib/desktop.sh"
 source "${BOOTSTRAP_ROOT}/lib/users.sh"
 
 THEME_POLICY_FILE="${BOOTSTRAP_ROOT}/files/packages/theme-policy.env"
-PINK_ROT_WALLPAPER_URL="https://raw.githubusercontent.com/r3b1s/media-assets/main/backgrounds/malenia.jpg"
+PINK_ROT_GTK_THEME="Kali-Pink-Dark"
+PINK_ROT_ICON_THEME="Flat-Remix-Pink-Dark"
+PINK_ROT_I3_WALLPAPER_URL="https://raw.githubusercontent.com/r3b1s/media-assets/main/backgrounds/malenia.jpg"
+PINK_ROT_XFCE_WALLPAPER_URL="https://raw.githubusercontent.com/r3b1s/media-assets/main/backgrounds/radahn.png"
 
 firefox_profile_paths() {
   local target_home="$1"
@@ -97,10 +100,11 @@ theme_i3_config() {
   fi
 }
 
-install_pink_rot_wallpaper() {
-  local target_home="$1"
-  local wallpaper_tmp=""
-  local wallpaper_path="${target_home}/.wallpaper"
+download_theme_asset() {
+  local asset_url="$1"
+  local dest_path="$2"
+  local description="$3"
+  local asset_tmp=""
 
   PACKAGE_POLICY_FILE="${THEME_POLICY_FILE}"
   load_package_policy
@@ -115,15 +119,22 @@ install_pink_rot_wallpaper() {
     return 1
   fi
 
-  wallpaper_tmp="$(mktemp)"
-  if ! curl -fL --retry 3 --output "${wallpaper_tmp}" "${PINK_ROT_WALLPAPER_URL}"; then
-    rm -f "${wallpaper_tmp}"
-    log_error "Failed to download pink-rot wallpaper from ${PINK_ROT_WALLPAPER_URL}"
+  asset_tmp="$(mktemp)"
+  if ! curl -fL --retry 3 --output "${asset_tmp}" "${asset_url}"; then
+    rm -f "${asset_tmp}"
+    log_error "Failed to download ${description} from ${asset_url}"
     return 1
   fi
 
-  install -m 644 -o "${TARGET_USER}" -g "${TARGET_USER}" "${wallpaper_tmp}" "${wallpaper_path}"
-  rm -f "${wallpaper_tmp}"
+  install -D -m 644 -o "${TARGET_USER}" -g "${TARGET_USER}" "${asset_tmp}" "${dest_path}"
+  rm -f "${asset_tmp}"
+}
+
+install_pink_rot_i3_wallpaper() {
+  local target_home="$1"
+  local wallpaper_path="${target_home}/.wallpaper"
+
+  download_theme_asset "${PINK_ROT_I3_WALLPAPER_URL}" "${wallpaper_path}" "pink-rot i3 wallpaper"
 
   if [[ -n "${DISPLAY:-}" ]]; then
     runuser -u "${TARGET_USER}" -- env \
@@ -141,11 +152,46 @@ configure_pink_rot_gtk_theme_override() {
   local icon_override_file="${marker_dir}/icon-theme.override"
 
   install -d -m 755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${marker_dir}"
-  printf '%s\n' "Arc-Dark" > "${theme_override_file}"
+  printf '%s\n' "${PINK_ROT_GTK_THEME}" > "${theme_override_file}"
   chown "${TARGET_USER}:${TARGET_USER}" "${theme_override_file}"
   chmod 644 "${theme_override_file}"
-  rm -f "${icon_override_file}"
+  printf '%s\n' "${PINK_ROT_ICON_THEME}" > "${icon_override_file}"
+  chown "${TARGET_USER}:${TARGET_USER}" "${icon_override_file}"
+  chmod 644 "${icon_override_file}"
   rm -rf "${target_home}/.local/share/icons/Breeze Chameleon Dark"
+}
+
+install_xfce_sync_files() {
+  local target_home="$1"
+  local tmp_script=""
+  local tmp_desktop=""
+
+  install_user_dir ".config/kalidots"
+  install_user_dir ".config/autostart"
+
+  tmp_script="$(mktemp)"
+  sed "s|__TARGET_HOME__|${target_home}|g" \
+    "${BOOTSTRAP_ROOT}/files/theme/pink-rot/xfce-pink-rot-sync.sh" > "${tmp_script}"
+  install_user_file "${tmp_script}" ".config/kalidots/pink-rot-xfce-sync.sh" 755
+  rm -f "${tmp_script}"
+
+  tmp_desktop="$(mktemp)"
+  sed "s|__TARGET_HOME__|${target_home}|g" \
+    "${BOOTSTRAP_ROOT}/files/theme/pink-rot/xfce-pink-rot.desktop" > "${tmp_desktop}"
+  install_user_file "${tmp_desktop}" ".config/autostart/kalidots-pink-rot-xfce.desktop"
+  rm -f "${tmp_desktop}"
+}
+
+install_pink_rot_xfce_wallpaper() {
+  local target_home="$1"
+  local wallpaper_path="${target_home}/.local/share/backgrounds/pink-rot-radahn.png"
+
+  download_theme_asset "${PINK_ROT_XFCE_WALLPAPER_URL}" "${wallpaper_path}" "pink-rot Xfce wallpaper"
+
+  if [[ -x "${target_home}/.config/kalidots/pink-rot-xfce-sync.sh" ]]; then
+    runuser -u "${TARGET_USER}" -- env HOME="${target_home}" "${target_home}/.config/kalidots/pink-rot-xfce-sync.sh" || \
+      log_warn "Xfce pink-rot sync did not complete; settings should apply on the next Xfce session start."
+  fi
 }
 
 stage_apply() {
@@ -196,12 +242,14 @@ stage_apply() {
   install_user_dir ".config/xsettingsd"
   install_user_dir ".config/kalidots"
   configure_pink_rot_gtk_theme_override "${target_home}"
+  install_xfce_sync_files "${target_home}"
   if [[ -x "${target_home}/.config/i3/scripts/theme-sync.sh" ]]; then
     runuser -u "${TARGET_USER}" -- env HOME="${target_home}" "${target_home}/.config/i3/scripts/theme-sync.sh"
   fi
 
-  # 8. Wallpaper for i3 via ~/.wallpaper, which the desktop i3 config loads with feh.
-  install_pink_rot_wallpaper "${target_home}"
+  # 8. Wallpapers. Keep i3 on malenia.jpg; set Xfce to the Radahn wallpaper.
+  install_pink_rot_i3_wallpaper "${target_home}"
+  install_pink_rot_xfce_wallpaper "${target_home}"
 
   # 9. Neovim — theme-specific colorscheme overlay for LazyVim
   if [[ -d "${target_home}/.config/nvim" ]]; then
@@ -248,8 +296,16 @@ stage_verify() {
   [[ -f "${target_home}/.config/gtk-3.0/settings.ini" ]] || { log_error "GTK 3 settings not deployed"; return 1; }
   [[ -f "${target_home}/.config/gtk-4.0/settings.ini" ]] || { log_error "GTK 4 settings not deployed"; return 1; }
   [[ -f "${target_home}/.config/xsettingsd/xsettingsd.conf" ]] || { log_error "xsettingsd config not deployed"; return 1; }
-  grep -q "gtk-theme-name=Arc-Dark" "${target_home}/.config/gtk-3.0/settings.ini" || { log_error "GTK theme not switched to Arc-Dark"; return 1; }
-  [[ -s "${target_home}/.wallpaper" ]] || { log_error "Wallpaper not downloaded to ${target_home}/.wallpaper"; return 1; }
+  grep -q "gtk-theme-name=${PINK_ROT_GTK_THEME}" "${target_home}/.config/gtk-3.0/settings.ini" || { log_error "GTK theme not switched to ${PINK_ROT_GTK_THEME}"; return 1; }
+  grep -q "gtk-icon-theme-name=${PINK_ROT_ICON_THEME}" "${target_home}/.config/gtk-3.0/settings.ini" || { log_error "GTK icon theme not switched to ${PINK_ROT_ICON_THEME}"; return 1; }
+  [[ -f "${target_home}/.config/kalidots/gtk-theme.override" ]] || { log_error "GTK theme override marker missing"; return 1; }
+  [[ -f "${target_home}/.config/kalidots/icon-theme.override" ]] || { log_error "Icon theme override marker missing"; return 1; }
+  grep -qx "${PINK_ROT_GTK_THEME}" "${target_home}/.config/kalidots/gtk-theme.override" || { log_error "GTK theme override marker incorrect"; return 1; }
+  grep -qx "${PINK_ROT_ICON_THEME}" "${target_home}/.config/kalidots/icon-theme.override" || { log_error "Icon theme override marker incorrect"; return 1; }
+  [[ -s "${target_home}/.wallpaper" ]] || { log_error "i3 wallpaper not downloaded to ${target_home}/.wallpaper"; return 1; }
+  [[ -s "${target_home}/.local/share/backgrounds/pink-rot-radahn.png" ]] || { log_error "Xfce wallpaper not downloaded"; return 1; }
+  [[ -x "${target_home}/.config/kalidots/pink-rot-xfce-sync.sh" ]] || { log_error "Xfce pink-rot sync script not deployed"; return 1; }
+  [[ -f "${target_home}/.config/autostart/kalidots-pink-rot-xfce.desktop" ]] || { log_error "Xfce pink-rot autostart entry not deployed"; return 1; }
 
   if [[ -d "${target_home}/.config/nvim" ]]; then
     [[ -f "${target_home}/.config/nvim/colors/kalidots.lua" ]] || { log_error "Neovim pink-rot colorscheme not deployed"; return 1; }
