@@ -123,6 +123,29 @@ write_if_changed() {
   return 0
 }
 
+set_xfconf_value() {
+  local property="$1"
+  local value="$2"
+
+  command -v xfconf-query >/dev/null 2>&1 || return 0
+
+  if xfconf-query -c xsettings -p "${property}" >/dev/null 2>&1; then
+    xfconf-query -c xsettings -p "${property}" -s "${value}" >/dev/null 2>&1 || true
+  else
+    xfconf-query -c xsettings -p "${property}" -n -t string -s "${value}" >/dev/null 2>&1 || true
+  fi
+}
+
+sync_xfce_xsettings() {
+  local theme_name="$1"
+  local icon_theme="$2"
+  local font_name="$3"
+
+  set_xfconf_value "/Net/ThemeName" "${theme_name}"
+  set_xfconf_value "/Net/IconThemeName" "${icon_theme}"
+  set_xfconf_value "/Gtk/FontName" "${font_name}"
+}
+
 apply_theme() {
   local signature
   local mode_name
@@ -181,6 +204,7 @@ EOF
   write_if_changed "${HOME}/.config/gtk-4.0/settings.ini" "${gtk_content}" || true
   write_if_changed "${HOME}/.gtkrc-2.0" "${gtk2_content}" || true
   write_if_changed "${HOME}/.config/xsettingsd/xsettingsd.conf" "${xsettings_content}" || true
+  sync_xfce_xsettings "${theme_name}" "${icon_theme}" "${font_name}"
   printf '%s\n' "${signature}" > "${state_file}"
 
   if [[ -n "${DISPLAY:-}" ]] && command -v xsettingsd >/dev/null 2>&1; then
