@@ -76,6 +76,7 @@ stage_verify() {
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
 
   command -v i3 >/dev/null 2>&1 || { log_error "i3 not found in PATH"; return 1; }
+  command -v autotiling >/dev/null 2>&1 || { log_error "autotiling not found in PATH"; return 1; }
   command -v rofi >/dev/null 2>&1 || { log_error "rofi not found in PATH"; return 1; }
   command -v alacritty >/dev/null 2>&1 || { log_error "alacritty not found in PATH"; return 1; }
   command -v clipmenud >/dev/null 2>&1 || { log_error "clipmenud not found in PATH"; return 1; }
@@ -84,6 +85,7 @@ stage_verify() {
   [[ -d "${target_home}/.config/i3/scripts" ]] || { log_error "i3 scripts directory not deployed"; return 1; }
   grep -q 'bindsym $mod+h focus left' "${target_home}/.config/i3/config" || { log_error "i3 config missing hjkl bindings"; return 1; }
   grep -q 'status_command $scripts/status-command.sh' "${target_home}/.config/i3/config" || { log_error "i3 config missing status wrapper"; return 1; }
+  grep -q 'autotiling' "${target_home}/.config/i3/config" || { log_error "i3 config missing autotiling autostart"; return 1; }
   grep -q '__TARGET_HOME__' "${target_home}/.config/i3/config" && { log_error "i3 config still has unresolved placeholders"; return 1; }
 
   # Verify key scripts are deployed and executable

@@ -1,5 +1,6 @@
 # Desktop profile - core window manager and supporting tools
 i3
+autotiling
 rofi
 alacritty
 fontconfig
@@ -56,3 +57,4 @@ dex
 # VM guest agents
 spice-vdagent
 qemu-guest-agent
+xdg-user-dirs

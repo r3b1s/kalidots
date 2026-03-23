@@ -15,6 +15,58 @@ source "${BOOTSTRAP_ROOT}/lib/users.sh"
 THEME_POLICY_FILE="${BOOTSTRAP_ROOT}/files/packages/theme-policy.env"
 PINK_ROT_WALLPAPER_URL="https://raw.githubusercontent.com/r3b1s/media-assets/main/backgrounds/malenia.jpg"
 
+firefox_profile_paths() {
+  local target_home="$1"
+  local profiles_ini="${target_home}/.mozilla/firefox/profiles.ini"
+  local path
+  local is_relative=1
+
+  [[ -f "${profiles_ini}" ]] || return 0
+
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    case "${line}" in
+      IsRelative=*)
+        is_relative="${line#IsRelative=}"
+        ;;
+      Path=*)
+        path="${line#Path=}"
+        if [[ "${is_relative}" == "1" ]]; then
+          printf '%s\n' "${target_home}/.mozilla/firefox/${path}"
+        else
+          printf '%s\n' "${path}"
+        fi
+        is_relative=1
+        ;;
+    esac
+  done < "${profiles_ini}"
+}
+
+apply_firefox_theme() {
+  local target_home="$1"
+  local profile_dir
+  local user_js
+  local pref_line='user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);'
+
+  while IFS= read -r profile_dir; do
+    [[ -n "${profile_dir}" ]] || continue
+    install -d -m 755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${profile_dir}/chrome"
+    install -m 644 -o "${TARGET_USER}" -g "${TARGET_USER}" \
+      "${BOOTSTRAP_ROOT}/files/theme/pink-rot/firefox/userChrome.css" \
+      "${profile_dir}/chrome/userChrome.css"
+    install -m 644 -o "${TARGET_USER}" -g "${TARGET_USER}" \
+      "${BOOTSTRAP_ROOT}/files/theme/pink-rot/firefox/userContent.css" \
+      "${profile_dir}/chrome/userContent.css"
+
+    user_js="${profile_dir}/user.js"
+    if [[ -f "${user_js}" ]] && grep -q 'toolkit.legacyUserProfileCustomizations.stylesheets' "${user_js}"; then
+      sed -i 's|^user_pref("toolkit\.legacyUserProfileCustomizations\.stylesheets".*|user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);|' "${user_js}"
+    else
+      printf '%s\n' "${pref_line}" >> "${user_js}"
+    fi
+    chown "${TARGET_USER}:${TARGET_USER}" "${user_js}"
+  done < <(firefox_profile_paths "${target_home}")
+}
+
 theme_i3_config() {
   local i3_config="$1"
   [[ -f "${i3_config}" ]] || { log_warn "i3 config not found — run desktop profile first"; return 0; }
@@ -142,6 +194,9 @@ stage_apply() {
   else
     log_warn "Neovim config not found — skipping pink-rot Neovim theme overlay"
   fi
+
+  # 11. Firefox — apply theme CSS to all profiles and enable chrome stylesheets here only.
+  apply_firefox_theme "${target_home}"
 }
 
 stage_verify() {
@@ -175,5 +230,13 @@ stage_verify() {
   if [[ -d "${target_home}/.config/nvim" ]]; then
     [[ -f "${target_home}/.config/nvim/colors/kalidots.lua" ]] || { log_error "Neovim pink-rot colorscheme not deployed"; return 1; }
     [[ -f "${target_home}/.config/nvim/lua/plugins/kalidots-theme.lua" ]] || { log_error "Neovim pink-rot LazyVim override not deployed"; return 1; }
+    grep -q '#050007' "${target_home}/.config/nvim/colors/kalidots.lua" || { log_error "Neovim theme background not dark enough"; return 1; }
+    grep -q '#d40d40' "${target_home}/.config/nvim/colors/kalidots.lua" || { log_error "Neovim theme accent not updated"; return 1; }
   fi
+
+  local operator_profile="${target_home}/.mozilla/firefox/operator"
+  [[ -f "${operator_profile}/chrome/userChrome.css" ]] || { log_error "Firefox userChrome.css not deployed"; return 1; }
+  [[ -f "${operator_profile}/chrome/userContent.css" ]] || { log_error "Firefox userContent.css not deployed"; return 1; }
+  [[ -f "${operator_profile}/user.js" ]] || { log_error "Firefox theme-stage user.js not deployed"; return 1; }
+  grep -q 'toolkit.legacyUserProfileCustomizations.stylesheets", true' "${operator_profile}/user.js" || { log_error "Firefox userChrome pref not enabled in theme stage"; return 1; }
 }

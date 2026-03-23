@@ -1,0 +1,98 @@
+/* Pink-rot Firefox chrome */
+:root {
+  --kalidots-bg: #050007 !important;
+  --kalidots-bg-alt: #0d060b !important;
+  --kalidots-panel: #14080f !important;
+  --kalidots-border: #4a1526 !important;
+  --kalidots-fg: #ffd6df !important;
+  --kalidots-muted: #a85869 !important;
+  --kalidots-accent: #d40d40 !important;
+  --kalidots-accent-hi: #ff4f7a !important;
+}
+
+#navigator-toolbox,
+#nav-bar,
+#TabsToolbar,
+#titlebar,
+#PersonalToolbar,
+#sidebar-box,
+#sidebar-header,
+#sidebar-search-container,
+.toolbarbutton-1,
+.titlebar-button {
+  background: var(--kalidots-bg) !important;
+  color: var(--kalidots-fg) !important;
+}
+
+#navigator-toolbox {
+  border-bottom: 1px solid var(--kalidots-border) !important;
+}
+
+.tabbrowser-tab .tab-background {
+  background: var(--kalidots-bg-alt) !important;
+  border: 0 !important;
+}
+
+.tabbrowser-tab[selected="true"] .tab-background,
+.tabbrowser-tab:hover .tab-background,
+.toolbarbutton-1:hover,
+.toolbarbutton-1[open="true"],
+.toolbarbutton-1[checked="true"],
+#tabs-newtab-button:hover,
+#new-tab-button:hover,
+#PersonalToolbar .bookmark-item:hover {
+  background: var(--kalidots-accent) !important;
+}
+
+.tab-text,
+.toolbarbutton-text,
+.toolbarbutton-icon,
+#sidebar-header,
+#urlbar-input,
+#searchbar,
+.findbar-textbox {
+  color: var(--kalidots-fg) !important;
+}
+
+.urlbar-background,
+#searchbar,
+findbar,
+menupopup,
+panel,
+.panel-subview-body,
+.panel-header,
+#urlbar-results,
+.urlbarView,
+.urlbarView-body-inner,
+.urlbarView-row {
+  background: var(--kalidots-bg) !important;
+  color: var(--kalidots-fg) !important;
+  border-color: var(--kalidots-border) !important;
+}
+
+#urlbar[focused="true"] .urlbar-background,
+#urlbar[breakout] .urlbar-background,
+#searchbar:focus-within {
+  border-color: var(--kalidots-accent-hi) !important;
+  box-shadow: 0 0 0 1px var(--kalidots-accent-hi) !important;
+}
+
+.urlbarView-row[selected],
+.urlbarView-row:hover,
+menu[_moz-menuactive="true"],
+menuitem[_moz-menuactive="true"] {
+  background: var(--kalidots-accent) !important;
+  color: var(--kalidots-fg) !important;
+}
+
+#sidebar-launcher-splitter,
+#sidebar-splitter {
+  border-color: var(--kalidots-border) !important;
+  background: var(--kalidots-border) !important;
+}
+
+#statuspanel-label {
+  background: var(--kalidots-bg) !important;
+  color: var(--kalidots-fg) !important;
+  border: 1px solid var(--kalidots-border) !important;
+}

@@ -34,7 +34,8 @@ clone_or_sync_repo() {
 
 ensure_gum_or_prompt_fallback() {
   local bootstrap_home="/root"
-  local bootstrap_path="/root/go/bin:/usr/local/go/bin:${PATH}"
+  local bootstrap_gopath="${bootstrap_home}/.local/share/go"
+  local bootstrap_path="${bootstrap_gopath}/bin:/usr/local/go/bin:${PATH}"
 
   if command -v gum >/dev/null 2>&1; then
     return 0
@@ -50,8 +51,9 @@ ensure_gum_or_prompt_fallback() {
 
   if command -v go >/dev/null 2>&1; then
     log_info "gum not found before target-user prompt; installing fallback copy via go install"
-    env PATH="${bootstrap_path}" GOPATH="${bootstrap_home}/go" HOME="${bootstrap_home}" bash -lc 'go install github.com/charmbracelet/gum@latest'
-    export PATH="/root/go/bin:${PATH}"
+    install -d -m 0755 "${bootstrap_gopath}"
+    env PATH="${bootstrap_path}" GOPATH="${bootstrap_gopath}" HOME="${bootstrap_home}" bash -lc 'go install github.com/charmbracelet/gum@latest'
+    export PATH="${bootstrap_gopath}/bin:${PATH}"
   fi
 
   if ! command -v gum >/dev/null 2>&1; then
@@ -71,13 +73,19 @@ stage_apply() {
   local dest
   local shallow
 
+  local user_gopath
+
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
+  user_gopath="${target_home}/.local/share/go"
 
   install_user_dir ".bashrc.d"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/bashrc.d/51-golang.sh" ".bashrc.d/51-golang.sh"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/bashrc.d/52-cargo.sh" ".bashrc.d/52-cargo.sh"
+  install_user_dir ".local"
+  install_user_dir ".local/share"
+  install_user_dir ".local/share/go"
 
-  user_tool_path="${target_home}/.local/bin:${target_home}/go/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
+  user_tool_path="${target_home}/.local/bin:${user_gopath}/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
 
   if command -v rustup >/dev/null 2>&1; then
     if ! runuser -u "${TARGET_USER}" -- rustup toolchain list 2>/dev/null | grep -q stable; then
@@ -88,14 +96,14 @@ stage_apply() {
 
   if ! command -v gum >/dev/null 2>&1; then
     log_info "gum not found after target-user resolution; installing via go install for downstream interactive commands"
-    runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${target_home}/go" HOME="${target_home}" bash -lc 'go install github.com/charmbracelet/gum@latest'
+    runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${user_gopath}" HOME="${target_home}" bash -lc 'go install github.com/charmbracelet/gum@latest'
   else
     log_info "gum already available: $(gum --version)"
   fi
 
   if command -v go >/dev/null 2>&1 || runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" bash -c 'command -v go' >/dev/null 2>&1; then
     log_info "Installing Go tools for ${TARGET_USER}"
-    runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${target_home}/go" HOME="${target_home}" bash -c 'go install golang.org/x/tools/gopls@latest'
+    runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${user_gopath}" HOME="${target_home}" bash -c 'go install golang.org/x/tools/gopls@latest'
   fi
 
   if command -v pipx >/dev/null 2>&1; then
@@ -133,15 +141,17 @@ stage_verify() {
 
   local target_home
   local user_tool_path
+  local user_gopath
 
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
-  user_tool_path="${target_home}/.local/bin:${target_home}/go/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
+  user_gopath="${target_home}/.local/share/go"
+  user_tool_path="${target_home}/.local/bin:${user_gopath}/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
 
   [[ -f "${target_home}/.bashrc.d/51-golang.sh" ]] || { log_error "Go PATH drop-in not deployed"; return 1; }
   [[ -f "${target_home}/.bashrc.d/52-cargo.sh" ]] || { log_error "Cargo PATH drop-in not deployed"; return 1; }
   runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" HOME="${target_home}" bash -c 'command -v cargo' >/dev/null 2>&1 || { log_error "cargo not available for target user"; return 1; }
   command -v gum >/dev/null 2>&1 || { log_error "gum not available"; return 1; }
-  runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${target_home}/go" HOME="${target_home}" bash -c 'command -v gopls' >/dev/null 2>&1 || { log_error "gopls not available for target user"; return 1; }
+  runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${user_gopath}" HOME="${target_home}" bash -c 'command -v gopls' >/dev/null 2>&1 || { log_error "gopls not available for target user"; return 1; }
   runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" HOME="${target_home}" bash -c 'command -v pwn' >/dev/null 2>&1 || { log_error "pwntools entrypoint not available for target user"; return 1; }
   [[ -d "/opt/tools/PayloadsAllTheThings/.git" ]] || { log_error "PayloadsAllTheThings not cloned"; return 1; }
 

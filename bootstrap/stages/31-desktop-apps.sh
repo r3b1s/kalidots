@@ -12,6 +12,120 @@ source "${BOOTSTRAP_ROOT}/lib/desktop.sh"
 # shellcheck disable=SC1091
 source "${BOOTSTRAP_ROOT}/lib/users.sh"
 
+configure_operator_home_dirs() {
+  local target_home="$1"
+  local tmp_file
+  local dir
+  local -a operator_dirs=(
+    "downloads"
+    "engagements"
+    "loot"
+    "payloads"
+    "reports"
+    "notes"
+    "screenshots"
+    "recordings"
+    ".local/share/go"
+  )
+  local -a legacy_dirs=(
+    "Desktop"
+    "Documents"
+    "Downloads"
+    "Music"
+    "Pictures"
+    "Public"
+    "Templates"
+    "Videos"
+  )
+
+  for dir in "${operator_dirs[@]}"; do
+    install_user_dir "${dir}"
+  done
+
+  tmp_file="$(mktemp)"
+  cat > "${tmp_file}" <<'EOF'
+XDG_DESKTOP_DIR="$HOME/engagements"
+XDG_DOWNLOAD_DIR="$HOME/downloads"
+XDG_TEMPLATES_DIR="$HOME"
+XDG_PUBLICSHARE_DIR="$HOME"
+XDG_DOCUMENTS_DIR="$HOME/notes"
+XDG_MUSIC_DIR="$HOME"
+XDG_PICTURES_DIR="$HOME/screenshots"
+XDG_VIDEOS_DIR="$HOME/recordings"
+EOF
+  install_user_dir ".config"
+  install_user_file "${tmp_file}" ".config/user-dirs.dirs"
+  rm -f "${tmp_file}"
+
+  for dir in "${legacy_dirs[@]}"; do
+    rmdir "${target_home}/${dir}" 2>/dev/null || true
+  done
+}
+
+ensure_firefox_operator_profile() {
+  local target_home="$1"
+  local firefox_root="${target_home}/.mozilla/firefox"
+  local profiles_ini="${firefox_root}/profiles.ini"
+  local tmp_file
+  local next_index
+
+  install_user_dir ".mozilla"
+  install_user_dir ".mozilla/firefox"
+  install_user_dir ".mozilla/firefox/operator"
+
+  if [[ ! -f "${profiles_ini}" ]]; then
+    tmp_file="$(mktemp)"
+    cat > "${tmp_file}" <<'EOF'
+[General]
+StartWithLastProfile=1
+Version=2
+EOF
+    install_user_file "${tmp_file}" ".mozilla/firefox/profiles.ini"
+    rm -f "${tmp_file}"
+  fi
+
+  if grep -q '^Name=operator$' "${profiles_ini}" 2>/dev/null; then
+    return 0
+  fi
+
+  next_index="$(
+    awk -F'[][]' '
+      /^\[Profile[0-9]+\]$/ {
+        gsub(/^Profile/, "", $2)
+        if ($2 + 1 > max) {
+          max = $2 + 1
+        }
+      }
+      END { print max + 0 }
+    ' "${profiles_ini}"
+  )"
+
+  cat >> "${profiles_ini}" <<EOF
+
+[Profile${next_index}]
+Name=operator
+IsRelative=1
+Path=operator
+Default=0
+EOF
+  chown "${TARGET_USER}:${TARGET_USER}" "${profiles_ini}"
+}
+
+install_firefox_policy() {
+  install -d -m 755 /etc/firefox/policies
+  install -m 644 "${BOOTSTRAP_ROOT}/files/desktop/firefox/policies.json" /etc/firefox/policies/policies.json
+
+  if [[ -d /usr/lib/firefox-esr ]]; then
+    install -d -m 755 /usr/lib/firefox-esr/distribution
+    install -m 644 "${BOOTSTRAP_ROOT}/files/desktop/firefox/policies.json" /usr/lib/firefox-esr/distribution/policies.json
+  fi
+
+  if [[ -d /usr/lib/firefox ]]; then
+    install -d -m 755 /usr/lib/firefox/distribution
+    install -m 644 "${BOOTSTRAP_ROOT}/files/desktop/firefox/policies.json" /usr/lib/firefox/distribution/policies.json
+  fi
+}
+
 install_i3status_rs() {
   if command -v i3status-rs >/dev/null 2>&1; then
     log_info "i3status-rs already installed"
@@ -97,6 +211,10 @@ stage_apply() {
   install_user_dir ".config/rofi"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/rofi/config.rasi" ".config/rofi/config.rasi"
 
+  configure_operator_home_dirs "${target_home}"
+  ensure_firefox_operator_profile "${target_home}"
+  install_firefox_policy
+
   # Install Nerd Font for Alacritty
   install_nerd_font
 
@@ -168,10 +286,30 @@ stage_verify() {
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
 
   [[ -f "${target_home}/.config/rofi/config.rasi" ]] || { log_error "Rofi config not deployed"; return 1; }
+  [[ -d "${target_home}/downloads" ]] || { log_error "downloads directory not created"; return 1; }
+  [[ -d "${target_home}/engagements" ]] || { log_error "engagements directory not created"; return 1; }
+  [[ -d "${target_home}/loot" ]] || { log_error "loot directory not created"; return 1; }
+  [[ -d "${target_home}/payloads" ]] || { log_error "payloads directory not created"; return 1; }
+  [[ -d "${target_home}/reports" ]] || { log_error "reports directory not created"; return 1; }
+  [[ -d "${target_home}/notes" ]] || { log_error "notes directory not created"; return 1; }
+  [[ -d "${target_home}/screenshots" ]] || { log_error "screenshots directory not created"; return 1; }
+  [[ -d "${target_home}/recordings" ]] || { log_error "recordings directory not created"; return 1; }
+  [[ -d "${target_home}/.local/share/go" ]] || { log_error "Go data directory not created"; return 1; }
+  [[ -f "${target_home}/.config/user-dirs.dirs" ]] || { log_error "XDG user dirs not configured"; return 1; }
+  grep -q 'XDG_DOWNLOAD_DIR="\$HOME/downloads"' "${target_home}/.config/user-dirs.dirs" || { log_error "downloads XDG mapping missing"; return 1; }
   [[ -f "${target_home}/.config/alacritty/alacritty.toml" ]] || { log_error "Alacritty config not deployed"; return 1; }
   [[ -f "${target_home}/.inputrc" ]] || { log_error "inputrc not deployed"; return 1; }
   grep -q "set editing-mode vi" "${target_home}/.inputrc" || { log_error "inputrc missing vi-mode"; return 1; }
   [[ -f "${target_home}/.bashrc.d/50-starship.sh" ]] || { log_error "Starship bashrc drop-in not deployed"; return 1; }
   command -v starship >/dev/null 2>&1 || { log_error "starship binary not found"; return 1; }
   [[ -f "${target_home}/.config/starship.toml" ]] || { log_error "Starship config not deployed"; return 1; }
+  grep -q 'git:' "${target_home}/.config/starship.toml" || { log_error "Starship config missing git branch segment"; return 1; }
+  [[ -d "${target_home}/.mozilla/firefox/operator" ]] || { log_error "Firefox operator profile directory not created"; return 1; }
+  [[ -f "${target_home}/.mozilla/firefox/profiles.ini" ]] || { log_error "Firefox profiles.ini missing"; return 1; }
+  grep -q '^Name=operator$' "${target_home}/.mozilla/firefox/profiles.ini" || { log_error "Firefox operator profile not registered"; return 1; }
+  [[ -f /etc/firefox/policies/policies.json ]] || { log_error "Firefox enterprise policy not installed"; return 1; }
+  grep -q '"DisableTelemetry": true' /etc/firefox/policies/policies.json || { log_error "Firefox telemetry policy missing"; return 1; }
+  if [[ -d /usr/lib/firefox-esr ]]; then
+    [[ -f /usr/lib/firefox-esr/distribution/policies.json ]] || { log_error "Firefox ESR distribution policy missing"; return 1; }
+  fi
 }

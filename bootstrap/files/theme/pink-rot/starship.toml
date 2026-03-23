@@ -15,13 +15,15 @@ error_symbol = "[>](bold #8F0936)"
 vimcmd_symbol = "[<](bold #AF0B39)"
 
 [directory]
-truncation_length = 3
-truncate_to_repo = true
+truncation_length = 2
+truncate_to_repo = false
 style = "bold #D40D40"
+format = "[$path]($style) "
 
 [git_branch]
-symbol = " "
+symbol = "git:"
 style = "bold #f17e97"
+format = "[$symbol$branch]($style) "
 
 [git_status]
 format = '([$all_status$ahead_behind]($style) )'

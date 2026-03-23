@@ -1,0 +1,25 @@
+/* Pink-rot Firefox content surfaces */
+@-moz-document url("about:blank"),
+               url("about:home"),
+               url("about:newtab"),
+               url("about:privatebrowsing") {
+  :root,
+  html,
+  body {
+    background: #050007 !important;
+    color: #ffd6df !important;
+  }
+
+  a {
+    color: #ff4f7a !important;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    background: #14080f !important;
+    color: #ffd6df !important;
+    border-color: #4a1526 !important;
+  }
+}
