@@ -83,7 +83,7 @@ theme_i3_config() {
     -e 's/^set \$inactive-bg .*/set $inactive-bg #050007/' \
     -e 's/^set \$inactive-text .*/set $inactive-text #a85869/' \
     -e 's/^set \$urgent-bg .*/set $urgent-bg #8F0936/' \
-    -e "s/^set \\$indicator .*/set \\$indicator ${PINK_ROT_INDICATOR_COLOR}/" \
+    -e 's/^set \$indicator .*/set $indicator '"${PINK_ROT_INDICATOR_COLOR}"'/' \
     -e "/^bar {/,/^}/ s/^[[:space:]]*background .*/    background ${PINK_ROT_BAR_BACKGROUND}/" \
     -e '/^bar {/,/^}/ s/^[[:space:]]*statusline .*/    statusline #f17e97/' \
     -e '/^bar {/,/^}/ s/^[[:space:]]*separator .*/    separator #7f0809/' \
