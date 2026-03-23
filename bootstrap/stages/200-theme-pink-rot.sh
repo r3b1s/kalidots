@@ -87,7 +87,7 @@ theme_i3_config() {
     -e "/^bar {/,/^}/ s/^[[:space:]]*background .*/    background ${PINK_ROT_BAR_BACKGROUND}/" \
     -e '/^bar {/,/^}/ s/^[[:space:]]*statusline .*/    statusline #f17e97/' \
     -e '/^bar {/,/^}/ s/^[[:space:]]*separator .*/    separator #7f0809/' \
-    -e "/^bar {/,/^}/ s/^[[:space:]]*focused_workspace .*/    focused_workspace ${PINK_ROT_BAR_BACKGROUND} ${PINK_ROT_BAR_BACKGROUND} #f17e97/" \
+    -e "/^bar {/,/^}/ s/^[[:space:]]*focused_workspace .*/    focused_workspace ${PINK_ROT_BAR_BACKGROUND} ${PINK_ROT_BAR_BACKGROUND} ${PINK_ROT_INDICATOR_COLOR}/" \
     -e '/^bar {/,/^}/ s/^[[:space:]]*inactive_workspace .*/    inactive_workspace #050007 #050007 #a85869/' \
     -e '/^bar {/,/^}/ s/^[[:space:]]*urgent_workspace .*/    urgent_workspace #8F0936 #8F0936 #f17e97/' \
     "${i3_config}"
@@ -100,7 +100,7 @@ theme_i3_config() {
     background '"${PINK_ROT_BAR_BACKGROUND}"'\
     statusline #f17e97\
     separator #7f0809\
-    focused_workspace '"${PINK_ROT_BAR_BACKGROUND}"' '"${PINK_ROT_BAR_BACKGROUND}"' #f17e97\
+    focused_workspace '"${PINK_ROT_BAR_BACKGROUND}"' '"${PINK_ROT_BAR_BACKGROUND}"' '"${PINK_ROT_INDICATOR_COLOR}"'\
     inactive_workspace #050007 #050007 #a85869\
     urgent_workspace #8F0936 #8F0936 #f17e97\
   }
