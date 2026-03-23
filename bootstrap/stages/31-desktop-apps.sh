@@ -142,8 +142,13 @@ install_i3status_rs() {
 
   export PATH="${HOME}/.cargo/bin:${PATH}"
 
+  if command -v rustup >/dev/null 2>&1 && ! rustup show active-toolchain >/dev/null 2>&1; then
+    log_info "Configuring default stable Rust toolchain for i3status-rs build"
+    rustup default stable
+  fi
+
   if [[ -x "${rustup_bin}" ]] && ! "${rustup_bin}" toolchain list 2>/dev/null | grep -q '^stable'; then
-    log_info "Setting up stable Rust toolchain for i3status-rs build"
+    log_info "Installing stable Rust toolchain for i3status-rs build"
     "${rustup_bin}" default stable
   fi
 
