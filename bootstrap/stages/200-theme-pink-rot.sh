@@ -149,7 +149,9 @@ install_pink_rot_icon_theme() {
 
   if [[ -f "${PINK_ROT_ICON_THEME_ARCHIVE}" ]]; then
     tmp_dir="$(mktemp -d)"
-    tar -xf "${PINK_ROT_ICON_THEME_ARCHIVE}" -C "${tmp_dir}"
+    if ! tar --warning=no-unknown-keyword -xf "${PINK_ROT_ICON_THEME_ARCHIVE}" -C "${tmp_dir}" 2>/dev/null; then
+      tar -xf "${PINK_ROT_ICON_THEME_ARCHIVE}" -C "${tmp_dir}" 2>/dev/null || true
+    fi
     extracted_dir="${tmp_dir}/${PINK_ROT_ICON_THEME_NAME}"
 
     if [[ -f "${extracted_dir}/index.theme" ]]; then

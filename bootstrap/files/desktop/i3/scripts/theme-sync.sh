@@ -18,6 +18,13 @@ trim_quotes() {
   printf '%s' "${value}"
 }
 
+trim_whitespace() {
+  local value="${1:-}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "${value}"
+}
+
 read_gsettings_value() {
   local key="$1"
   if command -v gsettings >/dev/null 2>&1; then
