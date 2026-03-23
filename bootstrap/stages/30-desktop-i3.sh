@@ -28,6 +28,9 @@ stage_apply() {
   tmp_config="$(mktemp)"
   sed "s|__TARGET_HOME__|${target_home}|g" \
     "${BOOTSTRAP_ROOT}/files/desktop/i3/config" > "${tmp_config}"
+  if command -v i3status-rs >/dev/null 2>&1; then
+    sed -i 's|status_command i3status$|status_command i3status-rs|' "${tmp_config}"
+  fi
 
   install_user_dir ".config/i3"
   install_user_file "${tmp_config}" ".config/i3/config"
@@ -96,6 +99,9 @@ stage_verify() {
   grep -q 'bindsym $mod+h focus left' "${target_home}/.config/i3/config" || { log_error "i3 config missing hjkl bindings"; return 1; }
   grep -q 'toggle-transparency.sh' "${target_home}/.config/i3/config" || { log_error "i3 config missing transparency toggle binding"; return 1; }
   grep -q 'picom --config' "${target_home}/.config/i3/config" || { log_error "i3 config missing picom config startup"; return 1; }
+  if command -v i3status-rs >/dev/null 2>&1; then
+    grep -q 'status_command i3status-rs' "${target_home}/.config/i3/config" || { log_error "i3 config should use i3status-rs when available"; return 1; }
+  fi
   grep -q '__TARGET_HOME__' "${target_home}/.config/i3/config" && { log_error "i3 config still has unresolved placeholders"; return 1; }
 
   # Verify key scripts are deployed and executable
