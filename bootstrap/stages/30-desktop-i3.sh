@@ -52,6 +52,14 @@ stage_apply() {
     rm -rf "${clipmenu_build}"
   fi
 
+  # Enable VM guest agents for clipboard sharing and display auto-resize
+  if command -v spice-vdagentd >/dev/null 2>&1; then
+    systemctl enable spice-vdagentd 2>/dev/null || true
+  fi
+  if command -v qemu-ga >/dev/null 2>&1; then
+    systemctl enable qemu-guest-agent 2>/dev/null || true
+  fi
+
   # Flatpak setup for KeePassXC
   if command -v flatpak >/dev/null 2>&1; then
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo

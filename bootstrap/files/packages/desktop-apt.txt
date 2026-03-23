@@ -49,3 +49,8 @@ firefox-esr
 remmina
 # Email
 thunderbird
+# XDG autostart
+dex
+# VM guest agents
+spice-vdagent
+qemu-guest-agent

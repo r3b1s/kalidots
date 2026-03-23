@@ -289,7 +289,10 @@ exec --no-startup-id feh --bg-fill __TARGET_HOME__/.wallpaper 2>/dev/null
 exec --no-startup-id dunst
 exec --no-startup-id nm-applet
 exec --no-startup-id clipmenud
+exec --no-startup-id spice-vdagent
+exec --no-startup-id blueman-applet
 exec --no-startup-id xautolock -time 10 -locker i3lock
+exec --no-startup-id dex --autostart -e i3
 
 # ─── Bar ────────────────────────────────────────────────────────────────────────
 
