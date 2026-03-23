@@ -45,8 +45,7 @@ desktop_entry_hidden() {
 
 launch_desktop_entry() {
   local desktop_file="$1"
-  gio launch "${desktop_file}" >/dev/null 2>&1 &
-  disown || true
+  setsid -f gio launch "${desktop_file}" >/dev/null 2>&1 || true
 }
 
 rofi_pick_index() {
@@ -127,7 +126,7 @@ parse_top_categories() {
   awk '
     /<Menu>/ { depth++; next }
     /<\/Menu>/ {
-      if (depth == 2 && name[depth] ~ /^[0-9][0-9] - /) {
+      if (depth == 2 && name[depth] != "Usual Applications") {
         print name[depth] "\t" directory[depth]
       }
       delete name[depth]
@@ -325,7 +324,7 @@ show_tools_menu() {
   for row in "${top_rows[@]}"; do
     IFS=$'\t' read -r name directory <<<"${row}"
     directory_file="$(find_directory_file "${directory}")" || continue
-    labels+=("${name}")
+    labels+=("$(directory_name_for_file "${directory_file}")")
     icons+=("$(directory_icon_for_file "${directory_file}")")
     directories+=("${directory}")
   done
@@ -339,10 +338,9 @@ open_path_target() {
   local path="$2"
 
   case "${mode}" in
-    terminal) alacritty --working-directory "${path}" & ;;
-    file-manager) thunar "${path}" & ;;
+    terminal) setsid -f alacritty --working-directory "${path}" >/dev/null 2>&1 || true ;;
+    file-manager) setsid -f thunar "${path}" >/dev/null 2>&1 || true ;;
   esac
-  disown || true
 }
 
 path_section_entries() {
@@ -450,9 +448,9 @@ show_screen_recording_menu() {
   idx="$(rofi_pick_index "Recording" labels icons)" || return 0
 
   case "${labels[idx]}" in
-    "Record Full Screen") "${SCRIPT_DIR}/screen-record.sh" --fullscreen ;;
-    "Record Selection") "${SCRIPT_DIR}/screen-record.sh" --area ;;
-    "Record Selection To GIF") "${SCRIPT_DIR}/screen-record.sh" --gif ;;
+    "Record Full Screen") setsid -f "${SCRIPT_DIR}/screen-record.sh" --fullscreen >/dev/null 2>&1 || true ;;
+    "Record Selection") setsid -f "${SCRIPT_DIR}/screen-record.sh" --area >/dev/null 2>&1 || true ;;
+    "Record Selection To GIF") setsid -f "${SCRIPT_DIR}/screen-record.sh" --gif >/dev/null 2>&1 || true ;;
   esac
 }
 
@@ -472,9 +470,9 @@ show_screenshot_menu() {
   idx="$(rofi_pick_index "Screenshot" labels icons)" || return 0
 
   case "${labels[idx]}" in
-    "Fullscreen") "${SCRIPT_DIR}/screenshot-menu.sh" fullscreen ;;
-    "Screenshot Selection") "${SCRIPT_DIR}/screenshot-menu.sh" selection ;;
-    "Screenshot Selection To Clipboard") "${SCRIPT_DIR}/screenshot-menu.sh" clipboard ;;
+    "Fullscreen") setsid -f "${SCRIPT_DIR}/screenshot-menu.sh" fullscreen >/dev/null 2>&1 || true ;;
+    "Screenshot Selection") setsid -f "${SCRIPT_DIR}/screenshot-menu.sh" selection >/dev/null 2>&1 || true ;;
+    "Screenshot Selection To Clipboard") setsid -f "${SCRIPT_DIR}/screenshot-menu.sh" clipboard >/dev/null 2>&1 || true ;;
   esac
 }
 
@@ -486,7 +484,7 @@ show_main_menu() {
   case "${MAIN_MENU_LABELS[idx]}" in
     "Tools") show_tools_menu ;;
     "Paths") show_paths_menu ;;
-    "Update") "${SCRIPT_DIR}/system-update.sh" ;;
+    "Update") setsid -f "${SCRIPT_DIR}/system-update.sh" >/dev/null 2>&1 || true ;;
     "Screen Recording") show_screen_recording_menu ;;
     "Screenshot") show_screenshot_menu ;;
   esac
