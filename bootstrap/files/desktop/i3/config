@@ -307,6 +307,9 @@ gaps inner 8
 gaps outer 2
 default_border pixel 2
 
+# Force border on windows that use CSD / no decorations
+for_window [class="Alacritty"] border pixel 2
+
 # Window colors
 # class                 border          backgr          text            indicator       child_border
 client.focused          $indicator      $bg-color       $text-color     $indicator      $indicator
