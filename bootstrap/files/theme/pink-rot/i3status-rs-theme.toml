@@ -1,6 +1,6 @@
-idle_bg = "#1a0304"
+idle_bg = "#320001"
 idle_fg = "#ffd6df"
-info_bg = "#630506"
+info_bg = "#320001"
 info_fg = "#ffd6df"
 good_bg = "#8d090a"
 good_fg = "#ffe6ed"

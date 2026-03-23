@@ -15,6 +15,7 @@ source "${BOOTSTRAP_ROOT}/lib/users.sh"
 THEME_POLICY_FILE="${BOOTSTRAP_ROOT}/files/packages/theme-policy.env"
 PINK_ROT_GTK_THEME="Kali-Pink-Dark"
 PINK_ROT_ICON_THEME="Flat-Remix-Pink-Dark"
+PINK_ROT_BAR_BACKGROUND="#320001"
 PINK_ROT_INDICATOR_COLOR="#D10A0A"
 PINK_ROT_I3_WALLPAPER_URL="https://raw.githubusercontent.com/r3b1s/media-assets/main/backgrounds/malenia.jpg"
 PINK_ROT_XFCE_WALLPAPER_URL="https://raw.githubusercontent.com/r3b1s/media-assets/main/backgrounds/radahn.png"
@@ -83,10 +84,10 @@ theme_i3_config() {
     -e 's/^set \$inactive-text .*/set $inactive-text #a85869/' \
     -e 's/^set \$urgent-bg .*/set $urgent-bg #8F0936/' \
     -e "s/^set \\$indicator .*/set \\$indicator ${PINK_ROT_INDICATOR_COLOR}/" \
-    -e '/^bar {/,/^}/ s/^[[:space:]]*background .*/    background #050007/' \
+    -e "/^bar {/,/^}/ s/^[[:space:]]*background .*/    background ${PINK_ROT_BAR_BACKGROUND}/" \
     -e '/^bar {/,/^}/ s/^[[:space:]]*statusline .*/    statusline #f17e97/' \
     -e '/^bar {/,/^}/ s/^[[:space:]]*separator .*/    separator #7f0809/' \
-    -e "/^bar {/,/^}/ s/^[[:space:]]*focused_workspace .*/    focused_workspace ${PINK_ROT_INDICATOR_COLOR} ${PINK_ROT_INDICATOR_COLOR} #050007/" \
+    -e "/^bar {/,/^}/ s/^[[:space:]]*focused_workspace .*/    focused_workspace ${PINK_ROT_BAR_BACKGROUND} ${PINK_ROT_BAR_BACKGROUND} #f17e97/" \
     -e '/^bar {/,/^}/ s/^[[:space:]]*inactive_workspace .*/    inactive_workspace #050007 #050007 #a85869/' \
     -e '/^bar {/,/^}/ s/^[[:space:]]*urgent_workspace .*/    urgent_workspace #8F0936 #8F0936 #f17e97/' \
     "${i3_config}"
@@ -96,10 +97,10 @@ theme_i3_config() {
     sed -i '/^bar {/,/^}/ {
       /^}/ i\
   colors {\
-    background #050007\
+    background '"${PINK_ROT_BAR_BACKGROUND}"'\
     statusline #f17e97\
     separator #7f0809\
-    focused_workspace '"${PINK_ROT_INDICATOR_COLOR}"' '"${PINK_ROT_INDICATOR_COLOR}"' #050007\
+    focused_workspace '"${PINK_ROT_BAR_BACKGROUND}"' '"${PINK_ROT_BAR_BACKGROUND}"' #f17e97\
     inactive_workspace #050007 #050007 #a85869\
     urgent_workspace #8F0936 #8F0936 #f17e97\
   }
