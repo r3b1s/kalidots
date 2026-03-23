@@ -2,7 +2,7 @@
 
 # shellcheck disable=SC2034
 stage_id="desktop-neovim"
-stage_description="Install Neovim with LazyVim starter and pixel.nvim colorscheme"
+stage_description="Install Neovim with LazyVim starter and non-themed baseline configuration"
 stage_profiles=("desktop")
 
 # shellcheck disable=SC1091
@@ -27,23 +27,20 @@ stage_apply() {
     chown -R "${TARGET_USER}:${TARGET_USER}" "${nvim_dir}"
   fi
 
-  # Deploy pixel.nvim plugin spec
-  install_user_dir ".config/nvim/lua/plugins"
   local pixel_spec="${nvim_dir}/lua/plugins/pixel.lua"
-  if [[ ! -f "${pixel_spec}" ]] || ! grep -q 'pixel' "${pixel_spec}" 2>/dev/null; then
-    cat > "${pixel_spec}" <<'PLUGIN_SPEC'
-return {
-  {
-    "bjarneo/pixel.nvim",
-    lazy = false,
-    priority = 1000,
-    config = function()
-      vim.cmd.colorscheme("pixel")
-    end,
-  },
-}
-PLUGIN_SPEC
-    chown "${TARGET_USER}:${TARGET_USER}" "${pixel_spec}"
+  local kalidots_theme="${nvim_dir}/lua/plugins/kalidots-theme.lua"
+  local kalidots_colorscheme="${nvim_dir}/colors/kalidots.lua"
+
+  if [[ -f "${pixel_spec}" ]]; then
+    rm -f "${pixel_spec}"
+  fi
+
+  if [[ -f "${kalidots_theme}" ]]; then
+    rm -f "${kalidots_theme}"
+  fi
+
+  if [[ -f "${kalidots_colorscheme}" ]]; then
+    rm -f "${kalidots_colorscheme}"
   fi
 }
 
@@ -55,5 +52,7 @@ stage_verify() {
 
   command -v nvim >/dev/null 2>&1 || { log_error "neovim not found in PATH"; return 1; }
   [[ -f "${target_home}/.config/nvim/init.lua" ]] || { log_error "LazyVim starter not deployed"; return 1; }
-  [[ -f "${target_home}/.config/nvim/lua/plugins/pixel.lua" ]] || { log_error "pixel.nvim plugin spec not deployed"; return 1; }
+  [[ ! -f "${target_home}/.config/nvim/lua/plugins/pixel.lua" ]] || { log_error "stale pixel.nvim plugin spec still present"; return 1; }
+  [[ ! -f "${target_home}/.config/nvim/lua/plugins/kalidots-theme.lua" ]] || { log_error "theme-specific kalidots override should not be present in desktop profile"; return 1; }
+  [[ ! -f "${target_home}/.config/nvim/colors/kalidots.lua" ]] || { log_error "theme-specific kalidots colorscheme should not be present in desktop profile"; return 1; }
 }

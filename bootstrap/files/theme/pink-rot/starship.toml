@@ -1,4 +1,4 @@
-# Starship prompt configuration - pink-blood theme
+# Starship prompt configuration - pink-rot theme
 format = """
 $directory\
 $git_branch\

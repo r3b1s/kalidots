@@ -101,7 +101,7 @@ The `keyboard` profile covers system-level/low-level keyboard configuration (Kan
 
 ### Theme profile
 
-The `theme` profile uses the 200-series numbering range. Each theme is a separate stage (e.g., `200-theme-pink-blood.sh`, `201-theme-next.sh`). Theme stages overlay color configs on top of desktop-deployed files — they use `sed` for i3 config color variables and `install_user_file` for full replacements of smaller configs. Theme config files live under `bootstrap/files/theme/<theme-name>/`. The theme profile requires the `desktop` profile to have been run first (configs must already exist to overlay).
+The `theme` profile uses the 200-series numbering range. Each theme is a separate stage (e.g., `200-theme-pink-rot.sh`, `201-theme-next.sh`). Theme stages overlay color configs on top of desktop-deployed files — they use `sed` for i3 config color variables and `install_user_file` for full replacements of smaller configs. Theme config files live under `bootstrap/files/theme/<theme-name>/`. The theme profile requires the `desktop` profile to have been run first (configs must already exist to overlay).
 
 ### Adding a new stage
 
@@ -133,7 +133,7 @@ Static config files live under `bootstrap/files/`. The path structure mirrors th
 - `files/desktop/i3/config` → `~/.config/i3/config`
 - `files/desktop/i3/scripts/*.sh` → `~/.config/i3/scripts/*.sh` (mode 755)
 - `files/desktop/alacritty/alacritty.toml` → `~/.config/alacritty/alacritty.toml`
-- `files/theme/pink-blood/*` → themed overlays deployed by `200-theme-pink-blood.sh`
+- `files/theme/pink-rot/*` → themed overlays deployed by `200-theme-pink-rot.sh`
 
 Some configs use placeholder substitution (e.g., `__TARGET_HOME__` replaced with the actual home path at deploy time via `sed`). When adding new configs, check whether the stage does substitution.
 

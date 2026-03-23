@@ -2,7 +2,7 @@
 icons = "material-nf"
 
 [theme]
-theme = "pink-blood"
+theme = "pink-rot"
 
 [[block]]
 block = "custom"

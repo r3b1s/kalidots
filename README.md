@@ -48,7 +48,7 @@ Each stage declares which profiles it belongs to, an `stage_apply` function, and
 | `tools-privacy` | tools | Telemetry opt-outs (Go telemetry, registry enforcement) |
 | `secrets-import` | secrets | SSH keys + KeePassXC vault import with strict permissions |
 | `llm-tooling` | llm | Deploy auth docs and config templates for LLM tools |
-| `theme-pink-blood` | theme | Pink-blood color theme for alacritty, i3, rofi, i3status-rs, dunst, btop, starship, GTK |
+| `theme-pink-rot` | theme | Pink-rot color theme for alacritty, i3, rofi, i3status-rs, dunst, btop, starship, GTK |
 
 ## CLI Reference
 
