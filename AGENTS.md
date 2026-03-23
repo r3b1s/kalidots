@@ -94,6 +94,8 @@ These are set by `cli.sh` and used throughout:
 - Whitespace trimming uses the POSIX parameter expansion pattern: `${var#"${var%%[![:space:]]*}"}` (see `trim_whitespace` in `users.sh`).
 - File deployment uses `install -D -m MODE -o OWNER -g GROUP SRC DEST` for atomic ownership + permissions.
 - Config file paths under the user's home use `install_user_file` from `desktop.sh`.
+- User-scoped Go installs use `GOPATH="$HOME/.local/share/go"` and place binaries in `"$HOME/.local/share/go/bin"`. When verifying or invoking Go-installed tools for `TARGET_USER`, include that bin directory in `PATH`.
+- When using `runuser -u "${TARGET_USER}"` for user-scoped commands, do not inherit the repository working directory. Run from the target user's home (for example `cd "$HOME"` first) so users without access to the bootstrap checkout do not hit `chdir ... permission denied`.
 
 ### Keyboard vs Desktop profile boundary
 
