@@ -138,6 +138,21 @@ BASHRC_DROPIN
   # Build i3status-rs if cargo is available
   install_i3status_rs
 
+  # Deploy i3status-rs built-in icons/themes to user XDG config (highest priority lookup)
+  if [[ -d /usr/local/share/i3status-rust ]]; then
+    install_user_dir ".config/i3status-rust/icons"
+    install_user_dir ".config/i3status-rust/themes"
+    local f
+    for f in /usr/local/share/i3status-rust/icons/*.toml; do
+      [[ -f "$f" ]] || continue
+      install_user_file "$f" ".config/i3status-rust/icons/$(basename "$f")"
+    done
+    for f in /usr/local/share/i3status-rust/themes/*.toml; do
+      [[ -f "$f" ]] || continue
+      install_user_file "$f" ".config/i3status-rust/themes/$(basename "$f")"
+    done
+  fi
+
   # Deploy i3status-rs config
   install_user_dir ".config/i3status-rust"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/i3status-rust/config.toml" ".config/i3status-rust/config.toml"

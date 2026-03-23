@@ -21,7 +21,7 @@ tests/bootstrap/lib/        Unit tests for library functions.
 
 ### Profiles and stages
 
-There are six **profiles**: `base`, `desktop`, `keyboard`, `tools`, `secrets`, `llm`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order. The `keyboard` profile is separate from `desktop` — it covers system-level/low-level keyboard configuration (e.g. Kanata), not desktop-environment-specific keybindings.
+There are seven **profiles**: `base`, `desktop`, `keyboard`, `tools`, `secrets`, `llm`, `theme`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order. The `keyboard` profile is separate from `desktop` — it covers system-level/low-level keyboard configuration (e.g. Kanata), not desktop-environment-specific keybindings. The `theme` profile is independent from `desktop` — it overlays color schemes on top of already-deployed desktop configs.
 
 Stage `21-bootstrap-user-cleanup` has no profile — it only runs when explicitly requested via `--stage bootstrap-user-cleanup`.
 
@@ -99,6 +99,10 @@ These are set by `cli.sh` and used throughout:
 
 The `keyboard` profile covers system-level/low-level keyboard configuration (Kanata, key remapping, input device setup). Desktop-environment-specific keybindings (i3 bindsym, Hyprland binds) belong in `desktop`. When adding new keyboard-related stages, use the `keyboard` profile and the 35-39 numbering range.
 
+### Theme profile
+
+The `theme` profile uses the 200-series numbering range. Each theme is a separate stage (e.g., `200-theme-pink-blood.sh`, `201-theme-next.sh`). Theme stages overlay color configs on top of desktop-deployed files — they use `sed` for i3 config color variables and `install_user_file` for full replacements of smaller configs. Theme config files live under `bootstrap/files/theme/<theme-name>/`. The theme profile requires the `desktop` profile to have been run first (configs must already exist to overlay).
+
 ### Adding a new stage
 
 1. Create `bootstrap/stages/NN-name.sh` where `NN` determines execution order.
@@ -129,6 +133,7 @@ Static config files live under `bootstrap/files/`. The path structure mirrors th
 - `files/desktop/i3/config` → `~/.config/i3/config`
 - `files/desktop/i3/scripts/*.sh` → `~/.config/i3/scripts/*.sh` (mode 755)
 - `files/desktop/alacritty/alacritty.toml` → `~/.config/alacritty/alacritty.toml`
+- `files/theme/pink-blood/*` → themed overlays deployed by `200-theme-pink-blood.sh`
 
 Some configs use placeholder substitution (e.g., `__TARGET_HOME__` replaced with the actual home path at deploy time via `sed`). When adding new configs, check whether the stage does substitution.
 

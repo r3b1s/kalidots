@@ -23,6 +23,8 @@ libxfixes-dev
 libssl-dev
 libsensors-dev
 libpulse-dev
+# Editor
+neovim
 # Color picker
 gpick
 # Notifications

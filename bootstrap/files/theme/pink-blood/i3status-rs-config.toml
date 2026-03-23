@@ -1,13 +1,16 @@
 [icons]
 icons = "material-nf"
 
+[theme]
+theme = "pink-blood"
+
 [[block]]
 block = "custom"
 command = "[ -f /tmp/i3-recording-active ] && echo REC"
 format = " $text "
 interval = 2
 [block.theme_overrides]
-idle_fg = "#ff5555"
+idle_fg = "#E80F3E"
 
 [[block]]
 block = "net"
