@@ -4,6 +4,7 @@ set -euo pipefail
 lock_dir="${XDG_RUNTIME_DIR:-/tmp}/kalidots-display-hotplug-watch.lock"
 enable_marker="${HOME}/.config/kalidots/qemu-hyprland-screen-resize-fix.enabled"
 poll_interval="${DISPLAY_RESIZE_POLL_INTERVAL:-2}"
+wallpaper_path="${HOME}/.wallpaper"
 
 cleanup() {
   rmdir "${lock_dir}" 2>/dev/null || true
@@ -62,6 +63,9 @@ apply_layout_if_needed() {
   [[ "${current_mode}" != "${preferred_mode}" ]] || return 0
 
   xrandr --output "${output}" --mode "${preferred_mode}" >/dev/null 2>&1 || true
+  if [[ -f "${wallpaper_path}" ]] && command -v feh >/dev/null 2>&1; then
+    feh --bg-center "${wallpaper_path}" >/dev/null 2>&1 || true
+  fi
 }
 
 if ! mkdir "${lock_dir}" 2>/dev/null; then
