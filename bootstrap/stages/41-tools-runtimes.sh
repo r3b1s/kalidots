@@ -87,9 +87,9 @@ stage_apply() {
   user_tool_path="${target_home}/.local/bin:${user_gopath}/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
 
   if command -v rustup >/dev/null 2>&1; then
-    if ! run_in_target_home "${target_home}" bash -lc 'cd "$HOME" && rustup toolchain list' 2>/dev/null | grep -q stable; then
+    if ! run_in_target_home "${target_home}" bash -c 'cd "$HOME" && rustup toolchain list' 2>/dev/null | grep -q stable; then
       log_info "Installing stable Rust toolchain for ${TARGET_USER}"
-      run_in_target_home "${target_home}" bash -lc 'cd "$HOME" && rustup default stable'
+      run_in_target_home "${target_home}" bash -c 'cd "$HOME" && rustup default stable'
     fi
   fi
 
@@ -99,15 +99,15 @@ stage_apply() {
     log_info "gum unavailable; downstream commands will use shell prompt fallback where supported"
   fi
 
-  if command -v go >/dev/null 2>&1 || run_in_target_home "${target_home}" env PATH="${user_tool_path}" bash -lc 'cd "$HOME" && command -v go' >/dev/null 2>&1; then
+  if command -v go >/dev/null 2>&1 || run_in_target_home "${target_home}" env PATH="${user_tool_path}" bash -c 'cd "$HOME" && command -v go' >/dev/null 2>&1; then
     log_info "Installing Go tools for ${TARGET_USER}"
-    run_in_target_home "${target_home}" env PATH="${user_tool_path}" GOPATH="${user_gopath}" bash -lc 'cd "$HOME" && go install golang.org/x/tools/gopls@latest'
+    run_in_target_home "${target_home}" env PATH="${user_tool_path}" GOPATH="${user_gopath}" bash -c 'cd "$HOME" && go install golang.org/x/tools/gopls@latest'
   fi
 
   if command -v pipx >/dev/null 2>&1; then
     log_info "Installing Python tools via pipx for ${TARGET_USER}"
-    run_in_target_home "${target_home}" bash -lc 'cd "$HOME" && pipx install pwntools' || log_warn "pwntools pipx install failed; may already be installed"
-    run_in_target_home "${target_home}" bash -lc 'cd "$HOME" && pipx ensurepath'
+    run_in_target_home "${target_home}" bash -c 'cd "$HOME" && pipx install pwntools' || log_warn "pwntools pipx install failed; may already be installed"
+    run_in_target_home "${target_home}" bash -c 'cd "$HOME" && pipx ensurepath' || log_info "pipx PATH already configured for ${TARGET_USER}"
   fi
 
   if command -v gem >/dev/null 2>&1; then
@@ -147,10 +147,10 @@ stage_verify() {
 
   [[ -f "${target_home}/.bashrc.d/51-golang.sh" ]] || { log_error "Go PATH drop-in not deployed"; return 1; }
   [[ -f "${target_home}/.bashrc.d/52-cargo.sh" ]] || { log_error "Cargo PATH drop-in not deployed"; return 1; }
-  run_in_target_home "${target_home}" env PATH="${user_tool_path}" bash -lc 'cd "$HOME" && command -v cargo' >/dev/null 2>&1 || { log_error "cargo not available for target user"; return 1; }
+  run_in_target_home "${target_home}" env PATH="${user_tool_path}" bash -c 'cd "$HOME" && command -v cargo' >/dev/null 2>&1 || { log_error "cargo not available for target user"; return 1; }
   command -v gum >/dev/null 2>&1 || { log_error "gum not available"; return 1; }
-  run_in_target_home "${target_home}" env PATH="${user_tool_path}" GOPATH="${user_gopath}" bash -lc 'cd "$HOME" && command -v gopls' >/dev/null 2>&1 || { log_error "gopls not available for target user"; return 1; }
-  run_in_target_home "${target_home}" env PATH="${user_tool_path}" bash -lc 'cd "$HOME" && command -v pwn' >/dev/null 2>&1 || { log_error "pwntools entrypoint not available for target user"; return 1; }
+  run_in_target_home "${target_home}" env PATH="${user_tool_path}" GOPATH="${user_gopath}" bash -c 'cd "$HOME" && command -v gopls' >/dev/null 2>&1 || { log_error "gopls not available for target user"; return 1; }
+  run_in_target_home "${target_home}" env PATH="${user_tool_path}" bash -c 'cd "$HOME" && command -v pwn' >/dev/null 2>&1 || { log_error "pwntools entrypoint not available for target user"; return 1; }
   [[ -d "/opt/tools/PayloadsAllTheThings/.git" ]] || { log_error "PayloadsAllTheThings not cloned"; return 1; }
 
   log_info "tools-runtimes stage verified"
