@@ -81,7 +81,7 @@ upgrade_i3_bar_config() {
 
   if command -v i3status-rs >/dev/null 2>&1; then
     log_info "i3status-rs found; upgrading bar config"
-    sed -i 's|status_command i3status$|status_command i3status-rs '"${target_home}"'/.config/i3/status.toml|' "${i3_config}"
+    sed -i 's|status_command i3status$|status_command i3status-rs|' "${i3_config}"
   else
     log_info "i3status-rs not found; keeping i3status fallback"
   fi
@@ -137,6 +137,10 @@ BASHRC_DROPIN
 
   # Build i3status-rs if cargo is available
   install_i3status_rs
+
+  # Deploy i3status-rs config
+  install_user_dir ".config/i3status-rust"
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/i3status-rust/config.toml" ".config/i3status-rust/config.toml"
 
   # Upgrade bar config if i3status-rs is available
   upgrade_i3_bar_config "${target_home}"
