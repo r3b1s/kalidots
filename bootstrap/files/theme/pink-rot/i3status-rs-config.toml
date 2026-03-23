@@ -10,9 +10,9 @@ command = "[ -f /tmp/i3-recording-active ] && echo REC"
 format = " $text "
 interval = 2
 [block.theme_overrides]
-idle_bg = "#7a1230"
+idle_bg = "#050007"
 idle_fg = "#E80F3E"
-info_bg = "#a31842"
+info_bg = "#050007"
 info_fg = "#fff1f5"
 
 [[block]]
@@ -21,7 +21,7 @@ format = " $icon {$signal_strength $ssid $frequency|Wired} via $device "
 format_alt = " $icon {$ip|Down} "
 interval = 10
 [block.theme_overrides]
-start_separator = " "
+start_separator = ""
 start_separator_bg = "#050007"
 start_separator_fg = "#050007"
 idle_bg = "#d10a0a"
