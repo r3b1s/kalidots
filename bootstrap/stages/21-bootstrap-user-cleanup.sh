@@ -21,28 +21,42 @@ cleanup_stage_explicitly_selected() {
   return 1
 }
 
-stage_apply() {
+resolve_bootstrap_user_for_cleanup() {
   local stored_bootstrap_user_json="null"
+  local stored_bootstrap_user=""
+
+  if [[ -n "${BOOTSTRAP_USER:-}" ]]; then
+    printf '%s\n' "${BOOTSTRAP_USER}"
+    return 0
+  fi
+
+  stored_bootstrap_user_json="$(state_get_value '.runtime.bootstrap_user' 2>/dev/null || true)"
+  if [[ "${stored_bootstrap_user_json}" != "null" && -n "${stored_bootstrap_user_json}" ]]; then
+    stored_bootstrap_user="$(jq -r '.' <<<"${stored_bootstrap_user_json}")"
+  fi
+
+  BOOTSTRAP_USER="$(prompt_with_fallback "Bootstrap user to remove" "${stored_bootstrap_user:-old bootstrap username}")"
+  BOOTSTRAP_USER="$(trim_whitespace "${BOOTSTRAP_USER}")"
+
+  if [[ -z "${BOOTSTRAP_USER}" ]]; then
+    log_error "Bootstrap user could not be determined."
+    return 1
+  fi
+
+  printf '%s\n' "${BOOTSTRAP_USER}"
+}
+
+stage_apply() {
   local target_user_json="null"
   local target_user=""
   local migration_status=""
-
-  if [[ -z "${BOOTSTRAP_USER:-}" ]]; then
-    stored_bootstrap_user_json="$(state_get_value '.runtime.bootstrap_user' 2>/dev/null || true)"
-    if [[ "${stored_bootstrap_user_json}" != "null" && -n "${stored_bootstrap_user_json}" ]]; then
-      BOOTSTRAP_USER="$(jq -r '.' <<<"${stored_bootstrap_user_json}")"
-    fi
-  fi
-
-  if [[ -z "${BOOTSTRAP_USER:-}" ]]; then
-    log_error "BOOTSTRAP_USER must be provided via --bootstrap-user, environment, or recorded installer state."
-    return 1
-  fi
 
   if ! cleanup_stage_explicitly_selected; then
     log_info "Bootstrap user removal is a separate manual cleanup step. Re-run with --stage bootstrap-user-cleanup."
     return 0
   fi
+
+  resolve_bootstrap_user_for_cleanup >/dev/null
 
   migration_status="$(state_get_stage_status "user-migration")"
   if [[ "${migration_status}" != "verified" ]]; then
@@ -69,20 +83,9 @@ stage_apply() {
 }
 
 stage_verify() {
-  local stored_bootstrap_user_json="null"
   local cleanup_status
 
-  if [[ -z "${BOOTSTRAP_USER:-}" ]]; then
-    stored_bootstrap_user_json="$(state_get_value '.runtime.bootstrap_user' 2>/dev/null || true)"
-    if [[ "${stored_bootstrap_user_json}" != "null" && -n "${stored_bootstrap_user_json}" ]]; then
-      BOOTSTRAP_USER="$(jq -r '.' <<<"${stored_bootstrap_user_json}")"
-    fi
-  fi
-
-  if [[ -z "${BOOTSTRAP_USER:-}" ]]; then
-    log_error "BOOTSTRAP_USER must be available to verify cleanup."
-    return 1
-  fi
+  resolve_bootstrap_user_for_cleanup >/dev/null
 
   cleanup_status="$(id "${BOOTSTRAP_USER}" >/dev/null 2>&1; printf '%s' "$?")"
   if [[ "${cleanup_status}" -eq 0 ]]; then
