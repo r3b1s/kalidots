@@ -45,8 +45,14 @@ main() {
   ensure_bootstrap_deps
   parse_cli_args "$@"
 
+  local cleanup_only_requested=false
+
+  if [[ "${#SELECTED_STAGE_IDS[@]}" -eq 1 && "${SELECTED_STAGE_IDS[0]}" == "bootstrap-user-cleanup" ]]; then
+    cleanup_only_requested=true
+  fi
+
   # Auto-detect bootstrap user from sudo if not explicitly provided
-  if [[ -z "${BOOTSTRAP_USER:-}" && -n "${SUDO_USER:-}" ]]; then
+  if [[ "${cleanup_only_requested}" != "true" && -z "${BOOTSTRAP_USER:-}" && -n "${SUDO_USER:-}" ]]; then
     BOOTSTRAP_USER="${SUDO_USER}"
   fi
 
