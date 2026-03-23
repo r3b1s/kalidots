@@ -21,11 +21,11 @@ format = " $icon {$signal_strength $ssid $frequency|Wired} via $device "
 format_alt = " $icon {$ip|Down} "
 interval = 10
 [block.theme_overrides]
-idle_bg = "#3c1631"
+idle_bg = "#8d090a"
 idle_fg = "#ffd4e5"
-info_bg = "#5c1d47"
+info_bg = "#b30a0b"
 info_fg = "#fff0f7"
-good_bg = "#7e255f"
+good_bg = "#d10a0a"
 good_fg = "#fff3f9"
 
 [[block]]
@@ -96,11 +96,11 @@ critical_fg = "#fff2f6"
 block = "sound"
 format = " $icon $volume "
 [block.theme_overrides]
-idle_bg = "#3b163a"
+idle_bg = "#6b0708"
 idle_fg = "#ffd1ff"
-info_bg = "#5b2060"
+info_bg = "#970a0b"
 info_fg = "#fff0ff"
-warning_bg = "#8e2f8e"
+warning_bg = "#c10d0e"
 warning_fg = "#fff3ff"
 [[block.click]]
 button = "left"
@@ -111,7 +111,7 @@ block = "time"
 interval = 5
 format = " $icon $timestamp.datetime(f:'%a %d %b %R') "
 [block.theme_overrides]
-idle_bg = "#3a1324"
+idle_bg = "#550607"
 idle_fg = "#ffd6e3"
-info_bg = "#591b35"
+info_bg = "#7f0809"
 info_fg = "#fff0f6"

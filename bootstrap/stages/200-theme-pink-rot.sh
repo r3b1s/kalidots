@@ -81,7 +81,13 @@ theme_i3_config() {
     -e 's/^set \$inactive-bg .*/set $inactive-bg #050007/' \
     -e 's/^set \$inactive-text .*/set $inactive-text #a85869/' \
     -e 's/^set \$urgent-bg .*/set $urgent-bg #8F0936/' \
-    -e 's/^set \$indicator .*/set $indicator #D40D40/' \
+    -e 's/^set \$indicator .*/set $indicator #D10A0A/' \
+    -e '/^bar {/,/^}/ s/^[[:space:]]*background .*/    background #050007/' \
+    -e '/^bar {/,/^}/ s/^[[:space:]]*statusline .*/    statusline #f17e97/' \
+    -e '/^bar {/,/^}/ s/^[[:space:]]*separator .*/    separator #7f0809/' \
+    -e '/^bar {/,/^}/ s/^[[:space:]]*focused_workspace .*/    focused_workspace #D10A0A #D10A0A #050007/' \
+    -e '/^bar {/,/^}/ s/^[[:space:]]*inactive_workspace .*/    inactive_workspace #050007 #050007 #a85869/' \
+    -e '/^bar {/,/^}/ s/^[[:space:]]*urgent_workspace .*/    urgent_workspace #8F0936 #8F0936 #f17e97/' \
     "${i3_config}"
 
   # Insert bar colors if not already present
@@ -91,13 +97,28 @@ theme_i3_config() {
   colors {\
     background #050007\
     statusline #f17e97\
-    separator #a85869\
-    focused_workspace #D40D40 #D40D40 #050007\
+    separator #7f0809\
+    focused_workspace #D10A0A #D10A0A #050007\
     inactive_workspace #050007 #050007 #a85869\
     urgent_workspace #8F0936 #8F0936 #f17e97\
   }
     }' "${i3_config}"
   fi
+}
+
+refresh_i3_theme_runtime() {
+  local target_home="$1"
+
+  [[ -n "${DISPLAY:-}" ]] || return 0
+  command -v i3-msg >/dev/null 2>&1 || return 0
+
+  runuser -u "${TARGET_USER}" -- env \
+    HOME="${target_home}" \
+    DISPLAY="${DISPLAY}" \
+    XAUTHORITY="${XAUTHORITY:-${target_home}/.Xauthority}" \
+    i3-msg reload >/dev/null 2>&1 || true
+
+  pkill -u "${TARGET_USER}" -x i3status-rs >/dev/null 2>&1 || true
 }
 
 download_theme_asset() {
@@ -184,8 +205,9 @@ install_xfce_sync_files() {
 
 install_pink_rot_xfce_wallpaper() {
   local target_home="$1"
-  local wallpaper_path="${target_home}/.local/share/backgrounds/pink-rot-radahn.png"
+  local wallpaper_path="${target_home}/downloads/pink-rot-radahn.png"
 
+  install_user_dir "downloads"
   download_theme_asset "${PINK_ROT_XFCE_WALLPAPER_URL}" "${wallpaper_path}" "pink-rot Xfce wallpaper"
 
   if [[ -x "${target_home}/.config/kalidots/pink-rot-xfce-sync.sh" ]]; then
@@ -250,6 +272,7 @@ stage_apply() {
   # 8. Wallpapers. Keep i3 on malenia.jpg; set Xfce to the Radahn wallpaper.
   install_pink_rot_i3_wallpaper "${target_home}"
   install_pink_rot_xfce_wallpaper "${target_home}"
+  refresh_i3_theme_runtime "${target_home}"
 
   # 9. Neovim — theme-specific colorscheme overlay for LazyVim
   if [[ -d "${target_home}/.config/nvim" ]]; then
@@ -303,9 +326,10 @@ stage_verify() {
   grep -qx "${PINK_ROT_GTK_THEME}" "${target_home}/.config/kalidots/gtk-theme.override" || { log_error "GTK theme override marker incorrect"; return 1; }
   grep -qx "${PINK_ROT_ICON_THEME}" "${target_home}/.config/kalidots/icon-theme.override" || { log_error "Icon theme override marker incorrect"; return 1; }
   [[ -s "${target_home}/.wallpaper" ]] || { log_error "i3 wallpaper not downloaded to ${target_home}/.wallpaper"; return 1; }
-  [[ -s "${target_home}/.local/share/backgrounds/pink-rot-radahn.png" ]] || { log_error "Xfce wallpaper not downloaded"; return 1; }
+  [[ -s "${target_home}/downloads/pink-rot-radahn.png" ]] || { log_error "Xfce wallpaper not downloaded"; return 1; }
   [[ -x "${target_home}/.config/kalidots/pink-rot-xfce-sync.sh" ]] || { log_error "Xfce pink-rot sync script not deployed"; return 1; }
   [[ -f "${target_home}/.config/autostart/kalidots-pink-rot-xfce.desktop" ]] || { log_error "Xfce pink-rot autostart entry not deployed"; return 1; }
+  [[ -f "${target_home}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml" ]] || { log_error "Xfce desktop wallpaper XML not deployed"; return 1; }
 
   if [[ -d "${target_home}/.config/nvim" ]]; then
     [[ -f "${target_home}/.config/nvim/colors/kalidots.lua" ]] || { log_error "Neovim pink-rot colorscheme not deployed"; return 1; }
