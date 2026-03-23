@@ -45,10 +45,6 @@ apply_telemetry_opt_outs() {
 }
 
 ensure_gum_or_prompt_fallback() {
-  local bootstrap_home="/root"
-  local bootstrap_gopath="${bootstrap_home}/.local/share/go"
-  local bootstrap_path="${bootstrap_gopath}/bin:/usr/local/go/bin:${PATH}"
-
   if command -v gum >/dev/null 2>&1; then
     return 0
   fi
@@ -59,13 +55,6 @@ ensure_gum_or_prompt_fallback() {
 
   if [[ -n "${TARGET_USER:-}" ]]; then
     return 0
-  fi
-
-  if command -v go >/dev/null 2>&1; then
-    log_info "gum not found before target-user prompt; installing fallback copy via go install"
-    install -d -m 0755 "${bootstrap_gopath}"
-    env PATH="${bootstrap_path}" GOPATH="${bootstrap_gopath}" HOME="${bootstrap_home}" bash -lc 'go install github.com/charmbracelet/gum@latest'
-    export PATH="${bootstrap_gopath}/bin:${PATH}"
   fi
 
   if ! command -v gum >/dev/null 2>&1; then
