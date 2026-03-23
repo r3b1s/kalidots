@@ -2,6 +2,7 @@
 set -euo pipefail
 
 readonly SCRIPT_DIR="${HOME}/.config/i3/scripts"
+readonly MODE="${1:-main}"
 readonly -a MAIN_MENU_LABELS=(
   "Tools"
   "Paths"
@@ -482,12 +483,19 @@ show_main_menu() {
   idx="$(rofi_pick_index "Kali" MAIN_MENU_LABELS MAIN_MENU_ICONS)" || return 0
 
   case "${MAIN_MENU_LABELS[idx]}" in
-    "Tools") show_tools_menu ;;
-    "Paths") show_paths_menu ;;
+    "Tools") setsid -f "${SCRIPT_DIR}/kali-menu.sh" tools >/dev/null 2>&1 || true ;;
+    "Paths") setsid -f "${SCRIPT_DIR}/kali-menu.sh" paths >/dev/null 2>&1 || true ;;
     "Update") setsid -f "${SCRIPT_DIR}/system-update.sh" >/dev/null 2>&1 || true ;;
-    "Screen Recording") show_screen_recording_menu ;;
-    "Screenshot") show_screenshot_menu ;;
+    "Screen Recording") setsid -f "${SCRIPT_DIR}/kali-menu.sh" recording >/dev/null 2>&1 || true ;;
+    "Screenshot") setsid -f "${SCRIPT_DIR}/kali-menu.sh" screenshot >/dev/null 2>&1 || true ;;
   esac
 }
 
-show_main_menu
+case "${MODE}" in
+  main) show_main_menu ;;
+  tools) sleep 0.12; show_tools_menu ;;
+  paths) sleep 0.12; show_paths_menu ;;
+  recording) sleep 0.12; show_screen_recording_menu ;;
+  screenshot) sleep 0.12; show_screenshot_menu ;;
+  *) exit 1 ;;
+esac
