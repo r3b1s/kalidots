@@ -1,4 +1,4 @@
-verify login shell is /bin/bash
+verify login shell is /bin/bash or zsh
 verify home directory is writable
 verify sudo group membership
 verify required groups from bootstrap/files/user/required-groups.txt

@@ -230,9 +230,15 @@ verify_migration_checklist() {
     [[ -n "${checklist_item}" ]] || continue
 
     case "${checklist_item}" in
-      "verify login shell is /bin/bash")
-        if [[ "$(getent passwd "${target_user}" | cut -d: -f7)" != "/bin/bash" ]]; then
-          log_error "Target user ${target_user} does not have /bin/bash as the login shell."
+      "verify login shell is /bin/bash or zsh")
+        local login_shell
+        local zsh_path=""
+
+        login_shell="$(getent passwd "${target_user}" | cut -d: -f7)"
+        zsh_path="$(command -v zsh || true)"
+
+        if [[ "${login_shell}" != "/bin/bash" && ( -z "${zsh_path}" || "${login_shell}" != "${zsh_path}" ) ]]; then
+          log_error "Target user ${target_user} does not have /bin/bash or zsh as the login shell."
           return 1
         fi
         ;;
