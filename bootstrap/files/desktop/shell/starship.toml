@@ -15,7 +15,7 @@ error_symbol = "[>](bold red)"
 vimcmd_symbol = "[<](bold green)"
 
 [directory]
-truncation_length = 1
+truncation_length = 0
 truncate_to_repo = false
 style = "bold cyan"
 format = "[$path]($style) "
