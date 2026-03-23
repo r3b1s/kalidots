@@ -22,21 +22,26 @@ prompt_with_fallback() {
   local placeholder="$2"
   local secret="${3:-no}"
   local value=""
+  local status=0
 
   if command -v gum >/dev/null 2>&1; then
     if [[ "${secret}" == "yes" ]]; then
-      value="$(gum input --password --placeholder "${placeholder}")"
+      value="$(gum input --password --placeholder "${placeholder}")" || status=$?
     else
-      value="$(gum input --placeholder "${placeholder}")"
+      value="$(gum input --placeholder "${placeholder}")" || status=$?
     fi
   else
     printf '%s: ' "${prompt_text}" >&2
     if [[ "${secret}" == "yes" ]]; then
-      IFS= read -rs value
+      IFS= read -rs value || status=$?
       printf '\n' >&2
     else
-      IFS= read -r value
+      IFS= read -r value || status=$?
     fi
+  fi
+
+  if [[ "${status}" -ne 0 ]]; then
+    return "${status}"
   fi
 
   printf '%s\n' "${value}"
@@ -46,7 +51,9 @@ prompt_target_username() {
   local username=""
 
   while true; do
-    username="$(prompt_with_fallback "Primary username" "primary username")"
+    if ! username="$(prompt_with_fallback "Primary username" "primary username")"; then
+      return 130
+    fi
     username="$(trim_whitespace "${username}")"
 
     if [[ -z "${username}" ]]; then
@@ -68,7 +75,9 @@ prompt_target_password() {
   local password=""
 
   while true; do
-    password="$(prompt_with_fallback "Primary password" "primary password" "yes")"
+    if ! password="$(prompt_with_fallback "Primary password" "primary password" "yes")"; then
+      return 130
+    fi
     if [[ -z "${password}" ]]; then
       log_warn "Primary password cannot be blank."
       continue

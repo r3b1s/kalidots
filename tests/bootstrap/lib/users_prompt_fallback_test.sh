@@ -108,6 +108,18 @@ test_prompt_target_password_falls_back_to_read_secret() {
   unset -f prompt_with_fallback
 }
 
+test_prompt_target_username_exits_on_interrupt() {
+  prompt_with_fallback() {
+    return 130
+  }
+
+  if prompt_target_username >/dev/null 2>&1; then
+    fail "prompt_target_username should not succeed when prompt input is interrupted"
+  fi
+
+  unset -f prompt_with_fallback
+}
+
 test_load_or_prompt_target_user_prefers_state_and_supports_fallback_prompt() {
   local output=""
   local state_write_file=""
@@ -153,6 +165,7 @@ main() {
   unset -f gum || true
   test_prompt_target_username_falls_back_to_read_and_validates
   test_prompt_target_password_falls_back_to_read_secret
+  test_prompt_target_username_exits_on_interrupt
   test_load_or_prompt_target_user_prefers_state_and_supports_fallback_prompt
   printf 'PASS\n'
 }
