@@ -96,6 +96,9 @@ stage_apply() {
   local qemu_hyprland_resize_fix_enabled
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
   qemu_hyprland_resize_fix_enabled="$(prompt_enable_qemu_hyprland_resize_fix)"
+  if [[ "${qemu_hyprland_resize_fix_enabled}" == "true" ]]; then
+    ensure_apt_packages "${BOOTSTRAP_ROOT}/files/packages/desktop-qemu-resize-fix-apt.txt"
+  fi
 
   # Deploy i3 config with resolved home path
   local tmp_config

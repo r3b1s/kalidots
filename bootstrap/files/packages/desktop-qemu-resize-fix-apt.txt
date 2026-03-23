@@ -1,0 +1,2 @@
+# Apt prerequisites for the optional qemu + hyprland screen resizing fix
+xinput

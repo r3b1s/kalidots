@@ -15,6 +15,37 @@ restart_spice_vdagent() {
   disown || true
 }
 
+realign_absolute_pointers() {
+  local output="$1"
+  local pointer_name=""
+  local pointer_id=""
+
+  command -v xinput >/dev/null 2>&1 || return 0
+  [[ -n "${output}" ]] || return 0
+
+  while IFS= read -r pointer_name; do
+    [[ -n "${pointer_name}" ]] || continue
+    pointer_id="$(xinput list --id-only "${pointer_name}" 2>/dev/null | head -n 1 || true)"
+    [[ -n "${pointer_id}" ]] || continue
+
+    xinput map-to-output "${pointer_id}" "${output}" >/dev/null 2>&1 || true
+    xinput set-prop "${pointer_id}" "Coordinate Transformation Matrix" \
+      1 0 0 \
+      0 1 0 \
+      0 0 1 >/dev/null 2>&1 || true
+  done < <(
+    xinput list --name-only 2>/dev/null | awk '
+      /QEMU USB Tablet/ ||
+      /QEMU QEMU USB Tablet/ ||
+      /Virtual Mouse/ ||
+      /spice/ ||
+      /SPICE/ ||
+      /Tablet/ ||
+      /Touchscreen/ { print }
+    '
+  )
+}
+
 cleanup() {
   rmdir "${lock_dir}" 2>/dev/null || true
 }
@@ -75,8 +106,11 @@ apply_layout_if_needed() {
   [[ -n "${preferred_mode}" ]] || return 0
   [[ "${current_mode}" != "${preferred_mode}" ]] || return 0
 
-  xrandr --output "${output}" --mode "${preferred_mode}" >/dev/null 2>&1 || true
+  xrandr --output "${output}" --auto >/dev/null 2>&1 || true
+  sleep 1
   restart_spice_vdagent
+  sleep 1
+  realign_absolute_pointers "${output}"
   if [[ -f "${wallpaper_path}" ]] && command -v feh >/dev/null 2>&1; then
     screen_size="$(xrandr --current | awk '/ connected primary/ { split($3, a, "+"); print a[1]; exit } / connected/ { split($3, a, "+"); print a[1]; exit }')"
     screen_width="${screen_size%x*}"
