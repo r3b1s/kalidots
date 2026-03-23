@@ -244,7 +244,7 @@ bindsym $mod+Shift+w exec --no-startup-id nm-connection-editor
 
 # ─── Display / Appearance ──────────────────────────────────────────────────────
 
-bindsym $mod+BackSpace exec --no-startup-id picom-trans -c -o -t
+bindsym $mod+BackSpace exec --no-startup-id $scripts/toggle-transparency.sh
 bindsym $mod+Shift+BackSpace exec --no-startup-id $scripts/cycle-gaps.sh
 bindsym $mod+Ctrl+BackSpace exec --no-startup-id $scripts/cycle-borders.sh
 bindsym $mod+Shift+Ctrl+Mod1+g exec --no-startup-id $scripts/toggle-maximize.sh
@@ -284,7 +284,7 @@ bindsym $mod+Delete mode "passthru"; exec --no-startup-id notify-send "Passthrou
 
 # ─── Startup ───────────────────────────────────────────────────────────────────
 
-exec --no-startup-id picom -b
+exec --no-startup-id picom --config __TARGET_HOME__/.config/picom/picom.conf -b
 exec --no-startup-id feh --bg-fill __TARGET_HOME__/.wallpaper 2>/dev/null
 exec --no-startup-id dunst
 exec --no-startup-id nm-applet
