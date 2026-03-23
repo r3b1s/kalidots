@@ -119,6 +119,54 @@ create_target_user() {
   printf '%s:%s\n' "$username" "$password" | chpasswd
 }
 
+uid_owner() {
+  local uid="$1"
+
+  getent passwd | awk -F: -v uid="${uid}" '$3 == uid { print $1; exit }'
+}
+
+uid_is_available() {
+  local uid="$1"
+
+  [[ -z "$(uid_owner "${uid}")" ]]
+}
+
+random_target_uid() {
+  local min_uid=10001
+  local max_uid=63999
+  local range_size=$((max_uid - min_uid + 1))
+
+  printf '%s\n' "$((min_uid + ((RANDOM << 15 | RANDOM) % range_size)))"
+}
+
+choose_available_target_uid() {
+  local preferred_uid="${1:-}"
+  local attempts=0
+  local max_attempts=512
+  local candidate_uid=""
+
+  if [[ -n "${preferred_uid}" ]]; then
+    if uid_is_available "${preferred_uid}"; then
+      printf '%s\n' "${preferred_uid}"
+      return 0
+    fi
+
+    log_warn "Recorded target UID ${preferred_uid} is already in use; selecting a new UID."
+  fi
+
+  while (( attempts < max_attempts )); do
+    candidate_uid="$(random_target_uid)"
+    if uid_is_available "${candidate_uid}"; then
+      printf '%s\n' "${candidate_uid}"
+      return 0
+    fi
+    attempts=$((attempts + 1))
+  done
+
+  log_error "Failed to find an available UID in range 10001-63999 after ${max_attempts} attempts."
+  return 1
+}
+
 ensure_target_groups() {
   local username="$1"
   local groups_file="$2"

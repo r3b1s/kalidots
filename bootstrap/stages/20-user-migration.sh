@@ -13,7 +13,7 @@ stage_apply() {
   local recorded_target_uid_json="null"
   local recorded_target_uid=""
   local current_uid=""
-  local target_uid=10001
+  local target_uid=""
 
   if [[ -z "${BOOTSTRAP_USER:-}" ]]; then
     log_error "BOOTSTRAP_USER must be provided via --bootstrap-user or environment."
@@ -27,12 +27,7 @@ stage_apply() {
     recorded_target_uid="$(jq -r '.' <<<"${recorded_target_uid_json}")"
   fi
 
-  if [[ -n "${recorded_target_uid}" ]]; then
-    target_uid="${recorded_target_uid}"
-  fi
-
   state_set_value '.runtime.target_user' "$(json_string "${TARGET_USER}")"
-  state_set_value '.runtime.target_uid' "${target_uid}"
 
   if id "${TARGET_USER}" >/dev/null 2>&1; then
     current_uid="$(id -u "${TARGET_USER}")"
@@ -53,6 +48,8 @@ stage_apply() {
   fi
 
   TARGET_PASSWORD="$(prompt_target_password)"
+  target_uid="$(choose_available_target_uid "${recorded_target_uid}")"
+  state_set_value '.runtime.target_uid' "${target_uid}"
   create_target_user "${TARGET_USER}" "${TARGET_PASSWORD}" "${target_uid}"
   ensure_target_groups "${TARGET_USER}" "bootstrap/files/user/required-groups.txt"
 }
