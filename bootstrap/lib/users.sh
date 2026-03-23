@@ -293,5 +293,25 @@ verify_migration_checklist() {
 }
 
 remove_bootstrap_user() {
-  deluser --remove-home "$1"
+  local username="$1"
+  local attempts=0
+  local max_attempts=10
+
+  if command -v loginctl >/dev/null 2>&1; then
+    loginctl terminate-user "${username}" >/dev/null 2>&1 || true
+  fi
+
+  pkill -KILL -u "${username}" >/dev/null 2>&1 || true
+
+  while pgrep -u "${username}" >/dev/null 2>&1 && (( attempts < max_attempts )); do
+    sleep 1
+    attempts=$((attempts + 1))
+  done
+
+  if pgrep -u "${username}" >/dev/null 2>&1; then
+    log_error "Failed to terminate all processes for bootstrap user ${username} before cleanup."
+    return 1
+  fi
+
+  deluser --remove-home "${username}"
 }
