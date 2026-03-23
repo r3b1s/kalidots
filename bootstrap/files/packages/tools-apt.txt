@@ -65,3 +65,6 @@ ruby
 ruby-dev
 rustup
 build-essential
+pkg-config
+libgpgme-dev
+libbtrfs-dev
