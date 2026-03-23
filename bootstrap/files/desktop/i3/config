@@ -18,7 +18,7 @@ set $indicator #5294e2
 font pango:monospace 10
 
 # Settings
-focus_follows_mouse yes
+focus_follows_mouse no
 floating_modifier $mod
 
 # ─── Core Actions ───────────────────────────────────────────────────────────────
@@ -298,7 +298,7 @@ exec --no-startup-id dex --autostart -e i3
 
 bar {
   position top
-  status_command i3status
+  status_command $scripts/status-command.sh
 }
 
 # ─── Gaps and Appearance ───────────────────────────────────────────────────────
