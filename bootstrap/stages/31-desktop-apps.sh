@@ -284,6 +284,12 @@ stage_apply() {
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/inputrc" ".inputrc"
   configure_zsh_user "${target_home}"
   remove_starship "${target_home}"
+  install_user_dir ".config/gtk-3.0"
+  install_user_dir ".config/gtk-4.0"
+  install_user_dir ".config/xsettingsd"
+  if [[ -x "${target_home}/.config/i3/scripts/theme-sync.sh" ]]; then
+    runuser -u "${TARGET_USER}" -- env HOME="${target_home}" "${target_home}/.config/i3/scripts/theme-sync.sh"
+  fi
 
   # Build i3status-rs from source, bootstrapping Rust if needed.
   install_i3status_rs
@@ -336,6 +342,9 @@ stage_verify() {
   [[ -f "${target_home}/.zshrc" ]] || { log_error ".zshrc not deployed"; return 1; }
   grep -q 'bindkey -v' "${target_home}/.zshrc" || { log_error ".zshrc missing vi mode"; return 1; }
   [[ "$(getent passwd "${TARGET_USER}" | cut -d: -f7)" == "$(command -v zsh)" ]] || { log_error "Target user shell is not zsh"; return 1; }
+  [[ -f "${target_home}/.config/gtk-3.0/settings.ini" ]] || { log_error "GTK 3 settings not deployed"; return 1; }
+  [[ -f "${target_home}/.config/gtk-4.0/settings.ini" ]] || { log_error "GTK 4 settings not deployed"; return 1; }
+  [[ -f "${target_home}/.config/xsettingsd/xsettingsd.conf" ]] || { log_error "xsettingsd config not deployed"; return 1; }
   [[ ! -f "${target_home}/.bashrc.d/50-starship.sh" ]] || { log_error "Starship bash drop-in should be removed"; return 1; }
   [[ ! -f "${target_home}/.config/starship.toml" ]] || { log_error "Starship config should be removed"; return 1; }
   [[ -d "${target_home}/.mozilla/firefox/operator" ]] || { log_error "Firefox operator profile directory not created"; return 1; }

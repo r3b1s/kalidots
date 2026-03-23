@@ -10,6 +10,10 @@ i3status
 feh
 picom
 xss-lock
+x11-utils
+xrandr
+xsettingsd
+arc-theme
 # Screenshots and recording
 scrot
 xclip

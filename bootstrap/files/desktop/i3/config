@@ -230,7 +230,6 @@ bindsym $mod+Shift+Ctrl+Mod1+v exec --no-startup-id $scripts/clipboard-clear.sh
 
 bindsym $mod+Ctrl+b exec --no-startup-id qutebrowser
 bindsym $mod+Ctrl+m exec --no-startup-id remmina
-bindsym $mod+Shift+d exec --no-startup-id $term -e podman-tui
 
 # ─── System / Controls ─────────────────────────────────────────────────────────
 
@@ -289,6 +288,9 @@ exec --no-startup-id dunst
 exec --no-startup-id nm-applet
 exec --no-startup-id clipmenud
 exec --no-startup-id $scripts/spice-display-init.sh
+exec --no-startup-id $scripts/display-hotplug-watch.sh
+exec --no-startup-id $scripts/theme-sync.sh --watch
+exec --no-startup-id xsettingsd
 exec --no-startup-id blueman-applet
 exec --no-startup-id xautolock -time 10 -locker i3lock
 exec --no-startup-id dex --autostart -e i3

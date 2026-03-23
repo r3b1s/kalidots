@@ -176,11 +176,13 @@ stage_apply() {
   install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/btop.theme" \
     ".config/btop/themes/pink-rot.theme"
 
-  # 7. GTK / Thunar — dark theme
-  apt-get install -y -qq arc-theme 2>/dev/null || log_warn "arc-theme not available in repos"
+  # 7. GTK / Thunar — keep the current system theme mode in sync
   install_user_dir ".config/gtk-3.0"
-  install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/gtk3-settings.ini" \
-    ".config/gtk-3.0/settings.ini"
+  install_user_dir ".config/gtk-4.0"
+  install_user_dir ".config/xsettingsd"
+  if [[ -x "${target_home}/.config/i3/scripts/theme-sync.sh" ]]; then
+    runuser -u "${TARGET_USER}" -- env HOME="${target_home}" "${target_home}/.config/i3/scripts/theme-sync.sh"
+  fi
 
   # 8. Wallpaper for i3 via ~/.wallpaper, which the desktop i3 config loads with feh.
   install_pink_rot_wallpaper "${target_home}"
@@ -227,7 +229,9 @@ stage_verify() {
   [[ -f "${target_home}/.config/dunst/dunstrc" ]] || { log_error "dunst config not deployed"; return 1; }
   [[ -f "${target_home}/.config/btop/btop.conf" ]] || { log_error "btop config not deployed"; return 1; }
   [[ -f "${target_home}/.config/btop/themes/pink-rot.theme" ]] || { log_error "btop theme not deployed"; return 1; }
-  [[ -f "${target_home}/.config/gtk-3.0/settings.ini" ]] || { log_error "GTK settings not deployed"; return 1; }
+  [[ -f "${target_home}/.config/gtk-3.0/settings.ini" ]] || { log_error "GTK 3 settings not deployed"; return 1; }
+  [[ -f "${target_home}/.config/gtk-4.0/settings.ini" ]] || { log_error "GTK 4 settings not deployed"; return 1; }
+  [[ -f "${target_home}/.config/xsettingsd/xsettingsd.conf" ]] || { log_error "xsettingsd config not deployed"; return 1; }
   [[ -s "${target_home}/.wallpaper" ]] || { log_error "Wallpaper not downloaded to ${target_home}/.wallpaper"; return 1; }
 
   if [[ -d "${target_home}/.config/nvim" ]]; then

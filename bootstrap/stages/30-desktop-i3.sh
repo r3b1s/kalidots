@@ -80,6 +80,9 @@ stage_verify() {
   command -v rofi >/dev/null 2>&1 || { log_error "rofi not found in PATH"; return 1; }
   command -v alacritty >/dev/null 2>&1 || { log_error "alacritty not found in PATH"; return 1; }
   command -v clipmenud >/dev/null 2>&1 || { log_error "clipmenud not found in PATH"; return 1; }
+  command -v xev >/dev/null 2>&1 || { log_error "xev not found in PATH"; return 1; }
+  command -v xrandr >/dev/null 2>&1 || { log_error "xrandr not found in PATH"; return 1; }
+  command -v xsettingsd >/dev/null 2>&1 || { log_error "xsettingsd not found in PATH"; return 1; }
 
   [[ -f "${target_home}/.config/i3/config" ]] || { log_error "i3 config not deployed"; return 1; }
   [[ -d "${target_home}/.config/i3/scripts" ]] || { log_error "i3 scripts directory not deployed"; return 1; }
@@ -89,7 +92,7 @@ stage_verify() {
   grep -q '__TARGET_HOME__' "${target_home}/.config/i3/config" && { log_error "i3 config still has unresolved placeholders"; return 1; }
 
   # Verify key scripts are deployed and executable
-  local required_scripts=(status-command.sh toggle-maximize.sh cycle-gaps.sh cycle-borders.sh scratchpad-launch.sh power-menu.sh screen-record.sh kali-menu.sh screenshot-menu.sh system-update.sh spice-display-init.sh)
+  local required_scripts=(status-command.sh toggle-maximize.sh cycle-gaps.sh cycle-borders.sh scratchpad-launch.sh power-menu.sh screen-record.sh kali-menu.sh screenshot-menu.sh system-update.sh spice-display-init.sh display-hotplug-watch.sh theme-sync.sh)
   for script in "${required_scripts[@]}"; do
     [[ -x "${target_home}/.config/i3/scripts/${script}" ]] || { log_error "Script not deployed or not executable: ${script}"; return 1; }
   done
