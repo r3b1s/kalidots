@@ -10,6 +10,7 @@ configuration {
 
 * {
     bg:     #050007;
+    bg-row: #141218;
     fg:     #f17e97;
     muted:  #a85869;
     accent: #D40D40;
@@ -51,10 +52,13 @@ listview {
 
 element {
     padding: 6px 8px;
+    background-color: @bg-row;
+    text-color: @fg;
 }
 
 element normal.normal {
-    text-color: @muted;
+    background-color: @bg-row;
+    text-color:       @fg;
 }
 
 element selected.normal {
@@ -63,6 +67,7 @@ element selected.normal {
 }
 
 element normal.urgent {
+    background-color: @bg-row;
     text-color: @urgent;
 }
 
