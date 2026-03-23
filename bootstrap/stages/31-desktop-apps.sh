@@ -127,32 +127,66 @@ install_firefox_policy() {
 }
 
 install_i3status_rs() {
-  local cargo_bin="${HOME}/.cargo/bin/cargo"
-  local rustup_bin="${HOME}/.cargo/bin/rustup"
+  local target_home
+  local cargo_home
+  local rustup_home
+  local cargo_bin
+  local rustup_bin
+  local user_path
+
+  target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
+  cargo_home="${target_home}/.cargo"
+  rustup_home="${target_home}/.rustup"
+  cargo_bin="${cargo_home}/bin/cargo"
+  rustup_bin="${cargo_home}/bin/rustup"
+  user_path="${cargo_home}/bin:${target_home}/.local/bin:${target_home}/.local/share/go/bin:/usr/local/go/bin:${PATH}"
 
   if command -v i3status-rs >/dev/null 2>&1; then
     log_info "i3status-rs already installed"
     return 0
   fi
 
-  if ! command -v cargo >/dev/null 2>&1 && [[ ! -x "${cargo_bin}" ]]; then
-    log_info "Installing minimal Rust toolchain for i3status-rs build"
-    curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+  if [[ ! -x "${cargo_bin}" ]]; then
+    log_info "Installing minimal Rust toolchain for ${TARGET_USER}"
+    runuser -u "${TARGET_USER}" -- env \
+      HOME="${target_home}" \
+      CARGO_HOME="${cargo_home}" \
+      RUSTUP_HOME="${rustup_home}" \
+      PATH="${user_path}" \
+      bash -lc 'curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable'
   fi
 
-  export PATH="${HOME}/.cargo/bin:${PATH}"
-
-  if command -v rustup >/dev/null 2>&1 && ! rustup show active-toolchain >/dev/null 2>&1; then
-    log_info "Configuring default stable Rust toolchain for i3status-rs build"
-    rustup default stable
+  if [[ -x "${rustup_bin}" ]] && ! runuser -u "${TARGET_USER}" -- env \
+    HOME="${target_home}" \
+    CARGO_HOME="${cargo_home}" \
+    RUSTUP_HOME="${rustup_home}" \
+    PATH="${user_path}" \
+    rustup show active-toolchain >/dev/null 2>&1; then
+    log_info "Configuring default stable Rust toolchain for ${TARGET_USER}"
+    runuser -u "${TARGET_USER}" -- env \
+      HOME="${target_home}" \
+      CARGO_HOME="${cargo_home}" \
+      RUSTUP_HOME="${rustup_home}" \
+      PATH="${user_path}" \
+      rustup default stable
   fi
 
-  if [[ -x "${rustup_bin}" ]] && ! "${rustup_bin}" toolchain list 2>/dev/null | grep -q '^stable'; then
-    log_info "Installing stable Rust toolchain for i3status-rs build"
-    "${rustup_bin}" default stable
+  if [[ -x "${rustup_bin}" ]] && ! runuser -u "${TARGET_USER}" -- env \
+    HOME="${target_home}" \
+    CARGO_HOME="${cargo_home}" \
+    RUSTUP_HOME="${rustup_home}" \
+    PATH="${user_path}" \
+    bash -lc 'rustup toolchain list 2>/dev/null | grep -q "^stable"' ; then
+    log_info "Installing stable Rust toolchain for ${TARGET_USER}"
+    runuser -u "${TARGET_USER}" -- env \
+      HOME="${target_home}" \
+      CARGO_HOME="${cargo_home}" \
+      RUSTUP_HOME="${rustup_home}" \
+      PATH="${user_path}" \
+      rustup default stable
   fi
 
-  if ! command -v cargo >/dev/null 2>&1; then
+  if [[ ! -x "${cargo_bin}" ]]; then
     log_error "cargo unavailable after Rust toolchain bootstrap"
     return 1
   fi
@@ -161,7 +195,13 @@ install_i3status_rs() {
   local build_dir
   build_dir="$(mktemp -d)"
   git clone --depth 1 https://github.com/greshake/i3status-rust.git "${build_dir}"
-  cargo build --manifest-path "${build_dir}/Cargo.toml" --release --locked
+  chown -R "${TARGET_USER}:${TARGET_USER}" "${build_dir}"
+  runuser -u "${TARGET_USER}" -- env \
+    HOME="${target_home}" \
+    CARGO_HOME="${cargo_home}" \
+    RUSTUP_HOME="${rustup_home}" \
+    PATH="${user_path}" \
+    cargo build --manifest-path "${build_dir}/Cargo.toml" --release --locked
   install -m 755 "${build_dir}/target/release/i3status-rs" /usr/local/bin/i3status-rs
   if [[ -d "${build_dir}/files" ]]; then
     install -d /usr/local/share/i3status-rust
