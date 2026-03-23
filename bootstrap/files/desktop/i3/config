@@ -234,7 +234,7 @@ bindsym $mod+Shift+d exec --no-startup-id $term -e podman-tui
 # ─── System / Controls ─────────────────────────────────────────────────────────
 
 bindsym $mod+Shift+Ctrl+Mod1+r restart
-bindsym $mod+Shift+Ctrl+Mod1+q exec "i3-nagbar -t warning -m 'Exit i3?' -b 'Yes' 'i3-msg exit'"
+bindsym $mod+Shift+Ctrl+Mod1+q exec "i3-nagbar -t error -m 'Exit i3?' -b 'Yes' 'i3-msg exit'"
 bindsym $mod+Mod1+i exec --no-startup-id i3lock
 bindsym $mod+Ctrl+i exec --no-startup-id $scripts/toggle-autolock.sh
 bindsym $mod+Ctrl+Mod1+a exec --no-startup-id pavucontrol

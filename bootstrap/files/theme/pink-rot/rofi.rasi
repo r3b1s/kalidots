@@ -11,6 +11,7 @@ configuration {
 * {
     bg:     #050007;
     bg-row: #141218;
+    bg-alt: #000000;
     fg:     #f17e97;
     muted:  #a85869;
     accent: #D40D40;
@@ -61,6 +62,11 @@ element normal.normal {
     text-color:       @fg;
 }
 
+element alternate.normal {
+    background-color: @bg-alt;
+    text-color:       @fg;
+}
+
 element selected.normal {
     background-color: @accent;
     text-color:       @bg;
@@ -69,6 +75,11 @@ element selected.normal {
 element normal.urgent {
     background-color: @bg-row;
     text-color: @urgent;
+}
+
+element alternate.urgent {
+    background-color: @bg-alt;
+    text-color:       @urgent;
 }
 
 element selected.urgent {
