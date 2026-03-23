@@ -2,9 +2,6 @@
 # "none" is always built-in; switch to "material-nf" if Nerd Fonts are installed
 icons = "none"
 
-[theme]
-theme = "plain"
-
 [[block]]
 block = "custom"
 command = "[ -f /tmp/i3-recording-active ] && echo REC"
