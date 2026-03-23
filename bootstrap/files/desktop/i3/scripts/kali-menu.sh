@@ -491,8 +491,272 @@ show_main_menu() {
   esac
 }
 
+rofi_script_header() {
+  local prompt="$1"
+  local data="${2:-}"
+
+  printf '\0prompt\x1f%s\n' "${prompt}"
+  printf '\0no-custom\x1ftrue\n'
+  [[ -n "${data}" ]] && printf '\0data\x1f%s\n' "${data}"
+}
+
+rofi_script_row() {
+  local label="$1"
+  local icon="${2:-}"
+  local info="${3:-}"
+
+  printf '%s' "${label}"
+  [[ -n "${icon}" ]] && printf '\0icon\x1f%s' "${icon}"
+  [[ -n "${info}" ]] && printf '\x1finfo\x1f%s' "${info}"
+  printf '\n'
+}
+
+render_main_menu_script() {
+  local i
+
+  rofi_script_header "Kali" "main"
+  for i in "${!MAIN_MENU_LABELS[@]}"; do
+    rofi_script_row "${MAIN_MENU_LABELS[i]}" "${MAIN_MENU_ICONS[i]}" "main|${MAIN_MENU_LABELS[i]}"
+  done
+}
+
+render_paths_action_menu_script() {
+  local -a labels=(
+    "Open in Terminal"
+    "Open in File Explorer"
+  )
+  local -a icons=(
+    "utilities-terminal"
+    "system-file-manager"
+  )
+  local i
+
+  rofi_script_header "Paths" "paths-action"
+  for i in "${!labels[@]}"; do
+    rofi_script_row "${labels[i]}" "${icons[i]}" "paths-action|${labels[i]}"
+  done
+}
+
+render_path_section_menu_script() {
+  local mode="$1"
+  local -a sections=(
+    "Core"
+    "Loot"
+    "Infra"
+  )
+  local -a icons=(
+    "folder"
+    "folder-saved-search"
+    "applications-system"
+  )
+  local i
+
+  rofi_script_header "Paths" "paths-section|${mode}"
+  for i in "${!sections[@]}"; do
+    rofi_script_row "${sections[i]}" "${icons[i]}" "paths-section|${mode}|${sections[i]}"
+  done
+}
+
+render_path_entries_menu_script() {
+  local mode="$1"
+  local section="$2"
+  local -a path_rows=()
+  local row
+  local label
+  local icon
+  local path
+
+  rofi_script_header "${section}" "paths-entries|${mode}|${section}"
+
+  mapfile -t path_rows < <(path_section_entries "${section}")
+  for row in "${path_rows[@]}"; do
+    IFS=$'\t' read -r label icon path <<<"${row}"
+    rofi_script_row "${label}" "${icon}" "path-open|${mode}|${path}"
+  done
+}
+
+render_screen_recording_menu_script() {
+  rofi_script_header "Recording" "recording"
+  rofi_script_row "Record Full Screen" "video-display" "recording|fullscreen"
+  rofi_script_row "Record Selection" "video-x-generic" "recording|area"
+  rofi_script_row "Record Selection To GIF" "image-gif" "recording|gif"
+}
+
+render_screenshot_menu_script() {
+  rofi_script_header "Screenshot" "screenshot"
+  rofi_script_row "Fullscreen" "applets-screenshooter" "screenshot|fullscreen"
+  rofi_script_row "Screenshot Selection" "selection-rectangular" "screenshot|selection"
+  rofi_script_row "Screenshot Selection To Clipboard" "edit-copy" "screenshot|clipboard"
+}
+
+render_tools_menu_script() {
+  local menu_file
+  local -a top_rows=()
+  local row
+  local name
+  local directory
+  local directory_file
+
+  menu_file="$(find_kali_menu_file)" || exit 0
+  rofi_script_header "Tools" "tools-top"
+
+  mapfile -t top_rows < <(parse_top_categories "${menu_file}")
+  for row in "${top_rows[@]}"; do
+    IFS=$'\t' read -r name directory <<<"${row}"
+    directory_file="$(find_directory_file "${directory}")" || continue
+    rofi_script_row \
+      "$(directory_name_for_file "${directory_file}")" \
+      "$(directory_icon_for_file "${directory_file}")" \
+      "tools-category|$(directory_name_for_file "${directory_file}")|${directory}"
+  done
+}
+
+render_tools_category_menu_script() {
+  local category_name="$1"
+  local category_directory="$2"
+  local menu_file
+  local category_directory_file
+  local category_slug
+  local category_icon
+  local -a sub_rows=()
+  local -a sub_slugs=()
+  local row
+  local sub_name
+  local sub_directory
+  local sub_directory_file
+  local sub_icon
+  local slugs_csv
+
+  menu_file="$(find_kali_menu_file)" || exit 0
+  category_directory_file="$(find_directory_file "${category_directory}")" || exit 0
+  category_slug="$(slug_from_directory_file "${category_directory_file}")"
+  category_icon="$(directory_icon_for_file "${category_directory_file}")"
+
+  mapfile -t sub_rows < <(parse_subcategories "${menu_file}" "${category_name}")
+  if [[ ${#sub_rows[@]} -eq 0 ]]; then
+    render_tools_app_menu_script "${category_name}" "${category_slug}"
+    return 0
+  fi
+
+  sub_slugs=("${category_slug}")
+  for row in "${sub_rows[@]}"; do
+    IFS=$'\t' read -r sub_name sub_directory <<<"${row}"
+    sub_directory_file="$(find_directory_file "${sub_directory}")" || continue
+    sub_slugs+=("$(slug_from_directory_file "${sub_directory_file}")")
+  done
+  slugs_csv="$(IFS=,; printf '%s' "${sub_slugs[*]}")"
+
+  rofi_script_header "${category_name}" "tools-category|${category_name}|${category_directory}"
+  rofi_script_row "All Tools" "${category_icon}" "tools-apps|${category_name}|${slugs_csv}"
+
+  for row in "${sub_rows[@]}"; do
+    IFS=$'\t' read -r sub_name sub_directory <<<"${row}"
+    sub_directory_file="$(find_directory_file "${sub_directory}")" || continue
+    sub_icon="$(directory_icon_for_file "${sub_directory_file}")"
+    rofi_script_row \
+      "${sub_name}" \
+      "${sub_icon}" \
+      "tools-apps|${sub_name}|$(slug_from_directory_file "${sub_directory_file}")"
+  done
+}
+
+render_tools_app_menu_script() {
+  local prompt="$1"
+  local slugs_csv="$2"
+  local -a slugs=()
+  local -a app_rows=()
+  local row
+  local label
+  local icon
+  local desktop_file
+
+  IFS=',' read -r -a slugs <<<"${slugs_csv}"
+  rofi_script_header "${prompt}" "tools-apps|${prompt}|${slugs_csv}"
+
+  mapfile -t app_rows < <(find_desktop_entries_by_slugs "${slugs[@]}" | sort -t $'\t' -k1,1f)
+  for row in "${app_rows[@]}"; do
+    IFS=$'\t' read -r label icon desktop_file <<<"${row}"
+    rofi_script_row "${label}" "${icon}" "launch-desktop|${desktop_file}"
+  done
+}
+
+handle_rofi_script_selection() {
+  local info="${ROFI_INFO:-}"
+  local selection="${1:-}"
+  local action
+  local arg1
+  local arg2
+
+  IFS='|' read -r action arg1 arg2 <<<"${info}"
+
+  case "${action}" in
+    main)
+      case "${arg1}" in
+        "Tools") render_tools_menu_script ;;
+        "Paths") render_paths_action_menu_script ;;
+        "Update") setsid -f "${SCRIPT_DIR}/system-update.sh" >/dev/null 2>&1 || true ;;
+        "Screen Recording") render_screen_recording_menu_script ;;
+        "Screenshot") render_screenshot_menu_script ;;
+      esac
+      ;;
+    paths-action)
+      case "${arg1}" in
+        "Open in Terminal") render_path_section_menu_script "terminal" ;;
+        "Open in File Explorer") render_path_section_menu_script "file-manager" ;;
+      esac
+      ;;
+    paths-section)
+      render_path_entries_menu_script "${arg1}" "${arg2}"
+      ;;
+    path-open)
+      open_path_target "${arg1}" "${arg2}"
+      ;;
+    recording)
+      case "${arg1}" in
+        fullscreen) setsid -f "${SCRIPT_DIR}/screen-record.sh" --fullscreen >/dev/null 2>&1 || true ;;
+        area) setsid -f "${SCRIPT_DIR}/screen-record.sh" --area >/dev/null 2>&1 || true ;;
+        gif) setsid -f "${SCRIPT_DIR}/screen-record.sh" --gif >/dev/null 2>&1 || true ;;
+      esac
+      ;;
+    screenshot)
+      case "${arg1}" in
+        fullscreen) setsid -f "${SCRIPT_DIR}/screenshot-menu.sh" fullscreen >/dev/null 2>&1 || true ;;
+        selection) setsid -f "${SCRIPT_DIR}/screenshot-menu.sh" selection >/dev/null 2>&1 || true ;;
+        clipboard) setsid -f "${SCRIPT_DIR}/screenshot-menu.sh" clipboard >/dev/null 2>&1 || true ;;
+      esac
+      ;;
+    tools-category)
+      render_tools_category_menu_script "${arg1}" "${arg2}"
+      ;;
+    tools-apps)
+      render_tools_app_menu_script "${arg1}" "${arg2}"
+      ;;
+    launch-desktop)
+      launch_desktop_entry "${arg1}"
+      ;;
+    *)
+      if [[ -z "${selection}" || "${ROFI_RETV:-0}" == "0" ]]; then
+        render_main_menu_script
+      fi
+      ;;
+  esac
+}
+
+launch_rofi_script_mode() {
+  exec rofi -show Kali -modes "Kali:${BASH_SOURCE[0]}"
+}
+
+if [[ -n "${ROFI_RETV:-}" ]]; then
+  if [[ "${ROFI_RETV}" == "0" ]]; then
+    render_main_menu_script
+  else
+    handle_rofi_script_selection "${1:-}"
+  fi
+  exit 0
+fi
+
 case "${MODE}" in
-  main) show_main_menu ;;
+  main) launch_rofi_script_mode ;;
   tools) show_tools_menu ;;
   paths) show_paths_menu ;;
   recording) show_screen_recording_menu ;;

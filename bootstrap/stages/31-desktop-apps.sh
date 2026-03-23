@@ -201,6 +201,51 @@ upgrade_i3_bar_config() {
   fi
 }
 
+ensure_user_shell_startup_chain() {
+  local target_home="$1"
+  local bashrc="${target_home}/.bashrc"
+  local bash_profile="${target_home}/.bash_profile"
+  local profile="${target_home}/.profile"
+  local drop_in_marker="# Source bashrc.d drop-ins"
+  local bashrc_source_marker="# Source .bashrc for interactive shells"
+
+  if ! grep -qF "${drop_in_marker}" "${bashrc}" 2>/dev/null; then
+    cat >> "${bashrc}" <<'BASHRC_DROPIN'
+
+# Source bashrc.d drop-ins
+if [[ -d "${HOME}/.bashrc.d" ]]; then
+  for _dropin in "${HOME}/.bashrc.d"/*.sh; do
+    [[ -r "${_dropin}" ]] && source "${_dropin}"
+  done
+  unset _dropin
+fi
+BASHRC_DROPIN
+    chown "${TARGET_USER}:${TARGET_USER}" "${bashrc}"
+  fi
+
+  if ! grep -qF "${bashrc_source_marker}" "${bash_profile}" 2>/dev/null; then
+    cat >> "${bash_profile}" <<'BASH_PROFILE_DROPIN'
+
+# Source .bashrc for interactive shells
+if [[ -f "${HOME}/.bashrc" ]]; then
+  source "${HOME}/.bashrc"
+fi
+BASH_PROFILE_DROPIN
+    chown "${TARGET_USER}:${TARGET_USER}" "${bash_profile}"
+  fi
+
+  if ! grep -qF "${bashrc_source_marker}" "${profile}" 2>/dev/null; then
+    cat >> "${profile}" <<'PROFILE_DROPIN'
+
+# Source .bashrc for interactive shells
+if [ -n "${BASH_VERSION:-}" ] && [ -f "${HOME}/.bashrc" ]; then
+  . "${HOME}/.bashrc"
+fi
+PROFILE_DROPIN
+    chown "${TARGET_USER}:${TARGET_USER}" "${profile}"
+  fi
+}
+
 stage_apply() {
   load_or_prompt_target_user >/dev/null
 
@@ -229,22 +274,7 @@ stage_apply() {
   install_user_dir ".bashrc.d"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/bashrc.d/50-starship.sh" ".bashrc.d/50-starship.sh"
 
-  # Ensure .bashrc sources drop-ins
-  local bashrc="${target_home}/.bashrc"
-  local drop_in_marker="# Source bashrc.d drop-ins"
-  if ! grep -qF "${drop_in_marker}" "${bashrc}" 2>/dev/null; then
-    cat >> "${bashrc}" <<'BASHRC_DROPIN'
-
-# Source bashrc.d drop-ins
-if [[ -d "${HOME}/.bashrc.d" ]]; then
-  for _dropin in "${HOME}/.bashrc.d"/*.sh; do
-    [[ -r "${_dropin}" ]] && source "${_dropin}"
-  done
-  unset _dropin
-fi
-BASHRC_DROPIN
-    chown "${TARGET_USER}:${TARGET_USER}" "${bashrc}"
-  fi
+  ensure_user_shell_startup_chain "${target_home}"
 
   # Install Starship (external exception)
   install_starship
@@ -301,6 +331,15 @@ stage_verify() {
   [[ -f "${target_home}/.inputrc" ]] || { log_error "inputrc not deployed"; return 1; }
   grep -q "set editing-mode vi" "${target_home}/.inputrc" || { log_error "inputrc missing vi-mode"; return 1; }
   [[ -f "${target_home}/.bashrc.d/50-starship.sh" ]] || { log_error "Starship bashrc drop-in not deployed"; return 1; }
+  grep -q 'Source bashrc.d drop-ins' "${target_home}/.bashrc" || { log_error ".bashrc does not source bashrc.d drop-ins"; return 1; }
+  if [[ -f "${target_home}/.bash_profile" ]]; then
+    grep -q 'Source .bashrc for interactive shells' "${target_home}/.bash_profile" || { log_error ".bash_profile does not source .bashrc"; return 1; }
+  elif [[ -f "${target_home}/.profile" ]]; then
+    grep -q 'Source .bashrc for interactive shells' "${target_home}/.profile" || { log_error ".profile does not source .bashrc"; return 1; }
+  else
+    log_error "No login-shell startup file found for target user"
+    return 1
+  fi
   command -v starship >/dev/null 2>&1 || { log_error "starship binary not found"; return 1; }
   [[ -f "${target_home}/.config/starship.toml" ]] || { log_error "Starship config not deployed"; return 1; }
   grep -q 'git:' "${target_home}/.config/starship.toml" || { log_error "Starship config missing git branch segment"; return 1; }
