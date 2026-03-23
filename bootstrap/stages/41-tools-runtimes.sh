@@ -32,6 +32,45 @@ clone_or_sync_repo() {
   fi
 }
 
+install_podman_tui_release() {
+  local target_home="$1"
+  local release_api="https://api.github.com/repos/containers/podman-tui/releases/latest"
+  local release_json
+  local asset_url
+  local tmp_dir
+  local zip_path
+  local binary_path
+
+  if [[ ",${PACKAGE_POLICY_EXTERNAL_EXCEPTIONS:-}," != *",podman-tui-release,"* ]]; then
+    log_warn "tools policy does not permit podman-tui release download; skipping"
+    return 0
+  fi
+
+  release_json="$(curl -fsSL "${release_api}")"
+  asset_url="$(jq -r '.assets[] | select(.name == "podman-tui-release-linux_amd64.zip") | .browser_download_url' <<<"${release_json}")"
+
+  if [[ -z "${asset_url}" || "${asset_url}" == "null" ]]; then
+    log_warn "Could not find podman-tui linux amd64 release asset"
+    return 0
+  fi
+
+  tmp_dir="$(mktemp -d)"
+  zip_path="${tmp_dir}/podman-tui.zip"
+  curl -fsSL -o "${zip_path}" "${asset_url}"
+  unzip -q "${zip_path}" -d "${tmp_dir}"
+  binary_path="$(find "${tmp_dir}" -type f -name podman-tui | head -1)"
+
+  if [[ -z "${binary_path}" ]]; then
+    rm -rf "${tmp_dir}"
+    log_warn "podman-tui release archive did not contain a podman-tui binary"
+    return 0
+  fi
+
+  install -d -m 0755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${target_home}/.local/bin"
+  install -m 0755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${binary_path}" "${target_home}/.local/bin/podman-tui"
+  rm -rf "${tmp_dir}"
+}
+
 ensure_gum_or_prompt_fallback() {
   local bootstrap_home="/root"
   local bootstrap_gopath="${bootstrap_home}/.local/share/go"
@@ -75,6 +114,9 @@ stage_apply() {
 
   local user_gopath
 
+  PACKAGE_POLICY_FILE="${BOOTSTRAP_ROOT}/files/packages/tools-policy.env"
+  load_package_policy
+
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
   user_gopath="${target_home}/.local/share/go"
 
@@ -104,8 +146,9 @@ stage_apply() {
   if command -v go >/dev/null 2>&1 || runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" bash -c 'command -v go' >/dev/null 2>&1; then
     log_info "Installing Go tools for ${TARGET_USER}"
     runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${user_gopath}" HOME="${target_home}" bash -c 'go install golang.org/x/tools/gopls@latest'
-    runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${user_gopath}" HOME="${target_home}" bash -c 'go install github.com/containers/podman-tui@latest'
   fi
+
+  install_podman_tui_release "${target_home}"
 
   if command -v pipx >/dev/null 2>&1; then
     log_info "Installing Python tools via pipx for ${TARGET_USER}"
