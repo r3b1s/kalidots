@@ -6,6 +6,26 @@ set -euo pipefail
 STATE_FILE="/tmp/i3-border-state"
 PRESETS=(0 1 2 4)
 
+focused_workspace_window_ids() {
+  i3-msg -t get_tree | jq -r '
+    .. | objects
+    | select(.type? == "workspace" and .focused == true)
+    | .. | objects
+    | select(.window? != null)
+    | .id
+  '
+}
+
+apply_border_width() {
+  local width="$1"
+  local window_id=""
+
+  while IFS= read -r window_id; do
+    [[ -n "${window_id}" ]] || continue
+    i3-msg "[con_id=${window_id}]" "border pixel ${width}" >/dev/null
+  done < <(focused_workspace_window_ids)
+}
+
 current=2
 if [[ -f "${STATE_FILE}" ]]; then
   current="$(cat "${STATE_FILE}")"
@@ -20,6 +40,6 @@ for i in "${!PRESETS[@]}"; do
 done
 
 next="${PRESETS[$next_index]}"
-i3-msg "border pixel ${next}"
+apply_border_width "${next}"
 printf '%s' "${next}" > "${STATE_FILE}"
 notify-send "Borders" "Border thickness set to ${next}px"
