@@ -1,5 +1,8 @@
 config.load_autoconfig(False)
 
+c.url.start_pages = ["about:blank"]
+c.url.default_page = "about:blank"
+
 # Search engines
 c.url.searchengines = {
     "DEFAULT": "https://search.brave.com/search?q={}",
