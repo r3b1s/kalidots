@@ -21,7 +21,7 @@ format = " $icon {$signal_strength $ssid $frequency|Wired} via $device "
 format_alt = " $icon {$ip|Down} "
 interval = 10
 [block.theme_overrides]
-start_separator = ""
+start_separator = " "
 start_separator_bg = "#050007"
 start_separator_fg = "#050007"
 idle_bg = "#d10a0a"
