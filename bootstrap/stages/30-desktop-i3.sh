@@ -63,6 +63,27 @@ configure_qemu_hyprland_resize_fix() {
   fi
 }
 
+flatpak_app_installed() {
+  local app_id="$1"
+
+  flatpak info --columns=application "${app_id}" >/dev/null 2>&1
+}
+
+ensure_flatpak_app() {
+  local remote_name="$1"
+  local remote_url="$2"
+  local app_id="$3"
+
+  if flatpak_app_installed "${app_id}"; then
+    log_info "Flatpak already installed: ${app_id}"
+    return 0
+  fi
+
+  flatpak remote-add --if-not-exists "${remote_name}" "${remote_url}"
+  flatpak install -y --noninteractive "${remote_name}" "${app_id}" || \
+    log_warn "${app_id} flatpak install failed — may need manual install"
+}
+
 stage_apply() {
   load_or_prompt_target_user >/dev/null
 
@@ -116,8 +137,7 @@ stage_apply() {
 
   # Flatpak setup for KeePassXC
   if command -v flatpak >/dev/null 2>&1; then
-    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-    flatpak install -y --noninteractive flathub org.keepassxc.KeePassXC || log_warn "KeePassXC flatpak install failed — may need manual install"
+    ensure_flatpak_app "flathub" "https://flathub.org/repo/flathub.flatpakrepo" "org.keepassxc.KeePassXC"
   else
     log_warn "flatpak not available — skipping KeePassXC install"
   fi
