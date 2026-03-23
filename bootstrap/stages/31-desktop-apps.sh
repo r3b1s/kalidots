@@ -280,6 +280,10 @@ stage_apply() {
   install_user_dir ".config/alacritty"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/alacritty/alacritty.toml" ".config/alacritty/alacritty.toml"
 
+  # Deploy qutebrowser config
+  install_user_dir ".config/qutebrowser"
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/qutebrowser/config.py" ".config/qutebrowser/config.py"
+
   # Deploy shell ergonomics
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/bashrc" ".bashrc"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/inputrc" ".inputrc"
@@ -338,6 +342,9 @@ stage_verify() {
   [[ -f "${target_home}/.config/user-dirs.dirs" ]] || { log_error "XDG user dirs not configured"; return 1; }
   grep -q 'XDG_DOWNLOAD_DIR="\$HOME/downloads"' "${target_home}/.config/user-dirs.dirs" || { log_error "downloads XDG mapping missing"; return 1; }
   [[ -f "${target_home}/.config/alacritty/alacritty.toml" ]] || { log_error "Alacritty config not deployed"; return 1; }
+  [[ -f "${target_home}/.config/qutebrowser/config.py" ]] || { log_error "qutebrowser config not deployed"; return 1; }
+  grep -q 'search.brave.com/search?q={}' "${target_home}/.config/qutebrowser/config.py" || { log_error "qutebrowser search engine config missing"; return 1; }
+  grep -q 'c.content.blocking.method = "both"' "${target_home}/.config/qutebrowser/config.py" || { log_error "qutebrowser blocking config missing"; return 1; }
   [[ -f "${target_home}/.bashrc" ]] || { log_error ".bashrc not deployed"; return 1; }
   grep -q 'set -o vi' "${target_home}/.bashrc" || { log_error ".bashrc missing vi mode"; return 1; }
   [[ -f "${target_home}/.inputrc" ]] || { log_error "inputrc not deployed"; return 1; }
