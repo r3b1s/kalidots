@@ -11,7 +11,7 @@ feh
 picom
 xss-lock
 x11-utils
-xrandr
+x11-server-utils
 xsettingsd
 arc-theme
 # Screenshots and recording
