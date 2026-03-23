@@ -21,7 +21,7 @@ tests/bootstrap/lib/        Unit tests for library functions.
 
 ### Profiles and stages
 
-There are seven **profiles**: `base`, `desktop`, `keyboard`, `tools`, `secrets`, `llm`, `theme`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order. The `keyboard` profile is separate from `desktop` — it covers system-level/low-level keyboard configuration (e.g. Kanata), not desktop-environment-specific keybindings. The `theme` profile is independent from `desktop` — it overlays color schemes on top of already-deployed desktop configs.
+There are eight **profiles**: `base`, `desktop`, `keyboard`, `tools`, `ctf`, `secrets`, `llm`, `theme`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order. The `keyboard` profile is separate from `desktop` — it covers system-level/low-level keyboard configuration (e.g. Kanata), not desktop-environment-specific keybindings. The `ctf` profile is for platform-specific CTF tooling that is not part of the general `tools` profile. The `theme` profile is independent from `desktop` — it overlays color schemes on top of already-deployed desktop configs.
 
 Stage `21-bootstrap-user-cleanup` has no profile — it only runs when explicitly requested via `--stage bootstrap-user-cleanup`.
 

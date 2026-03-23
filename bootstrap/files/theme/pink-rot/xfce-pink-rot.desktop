@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Kalidots Pink Rot Xfce Sync
+Exec=__TARGET_HOME__/.config/kalidots/pink-rot-xfce-sync.sh
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+Terminal=false

@@ -55,14 +55,22 @@ load_stage_registry
 registry_lines="$(printf '%s\n' "${STAGE_REGISTRY_IDS[@]}")"
 
 assert_contains_line "bootstrap-user-cleanup" "${registry_lines}" "cleanup stage should be registered"
+assert_contains_line "ctf-htbtoolkit" "${registry_lines}" "ctf stage should be registered"
 assert_contains_line "theme-pink-rot" "${registry_lines}" "theme stage should be registered"
 
 cleanup_line="$(grep -n '^bootstrap-user-cleanup$' <<<"${registry_lines}" | cut -d: -f1)"
+ctf_line="$(grep -n '^ctf-htbtoolkit$' <<<"${registry_lines}" | cut -d: -f1)"
 theme_line="$(grep -n '^theme-pink-rot$' <<<"${registry_lines}" | cut -d: -f1)"
 
 if (( cleanup_line >= theme_line )); then
   printf 'FAIL: load_stage_registry should preserve numeric stage ordering\ncleanup line: %s\ntheme line: %s\n' \
     "${cleanup_line}" "${theme_line}" >&2
+  exit 1
+fi
+
+if (( ctf_line >= theme_line )); then
+  printf 'FAIL: ctf stage should sort before theme stages\nctf line: %s\ntheme line: %s\n' \
+    "${ctf_line}" "${theme_line}" >&2
   exit 1
 fi
 

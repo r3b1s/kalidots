@@ -1,0 +1,12 @@
+# CTF profile - platform-specific CTF tooling prerequisites
+build-essential
+cargo
+coreutils
+fonts-noto-color-emoji
+git
+gnome-keyring
+gzip
+libsecret-tools
+libssl-dev
+openvpn
+pkg-config

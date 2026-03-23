@@ -10,6 +10,7 @@ cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/kalidots"
 state_file="${cache_dir}/theme-sync.state"
 lock_dir="${XDG_RUNTIME_DIR:-/tmp}/kalidots-theme-sync.lock"
 theme_override_file="${HOME}/.config/kalidots/gtk-theme.override"
+icon_override_file="${HOME}/.config/kalidots/icon-theme.override"
 
 trim_quotes() {
   local value="${1:-}"
@@ -66,6 +67,9 @@ theme_signature() {
     if [[ -n "${theme_override}" ]]; then
       theme_name="${theme_override}"
     fi
+  fi
+  if [[ -f "${icon_override_file}" ]]; then
+    icon_theme="$(trim_whitespace "$(cat "${icon_override_file}")")"
   fi
   if [[ -z "${icon_theme}" ]]; then
     icon_theme="$(read_ini_value "${gtk_settings}" "gtk-icon-theme-name")"
