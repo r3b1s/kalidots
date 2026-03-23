@@ -7,6 +7,14 @@ poll_interval="${DISPLAY_RESIZE_POLL_INTERVAL:-2}"
 wallpaper_path="${HOME}/.wallpaper"
 wallpaper_cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/kalidots"
 
+restart_spice_vdagent() {
+  command -v spice-vdagent >/dev/null 2>&1 || return 0
+
+  pkill -x spice-vdagent >/dev/null 2>&1 || true
+  spice-vdagent >/dev/null 2>&1 &
+  disown || true
+}
+
 cleanup() {
   rmdir "${lock_dir}" 2>/dev/null || true
 }
@@ -68,6 +76,7 @@ apply_layout_if_needed() {
   [[ "${current_mode}" != "${preferred_mode}" ]] || return 0
 
   xrandr --output "${output}" --mode "${preferred_mode}" >/dev/null 2>&1 || true
+  restart_spice_vdagent
   if [[ -f "${wallpaper_path}" ]] && command -v feh >/dev/null 2>&1; then
     screen_size="$(xrandr --current | awk '/ connected primary/ { split($3, a, "+"); print a[1]; exit } / connected/ { split($3, a, "+"); print a[1]; exit }')"
     screen_width="${screen_size%x*}"

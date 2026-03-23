@@ -50,7 +50,7 @@ main() {
     BOOTSTRAP_USER="${SUDO_USER}"
   fi
 
-  if [[ "${#SELECTED_PROFILES[@]}" -eq 0 ]]; then
+  if [[ "${#SELECTED_PROFILES[@]}" -eq 0 && "${#SELECTED_STAGE_IDS[@]}" -eq 0 ]]; then
     choose_profiles_interactive
   fi
 
@@ -58,6 +58,9 @@ main() {
   SELECTED_PROFILES=("${NORMALIZED_SELECTED_PROFILES[@]}")
 
   state_init
+  if [[ -n "${BOOTSTRAP_USER:-}" ]]; then
+    state_set_value '.runtime.bootstrap_user' "$(jq -Rn --arg value "${BOOTSTRAP_USER}" '$value')"
+  fi
   state_set_run_selection \
     "$(join_by_comma "${SELECTED_PROFILES[@]}")" \
     "$(join_by_comma "${SELECTED_STAGE_IDS[@]}")"

@@ -22,12 +22,20 @@ cleanup_stage_explicitly_selected() {
 }
 
 stage_apply() {
+  local stored_bootstrap_user_json="null"
   local target_user_json="null"
   local target_user=""
   local migration_status=""
 
   if [[ -z "${BOOTSTRAP_USER:-}" ]]; then
-    log_error "BOOTSTRAP_USER must be provided via --bootstrap-user or environment."
+    stored_bootstrap_user_json="$(state_get_value '.runtime.bootstrap_user' 2>/dev/null || true)"
+    if [[ "${stored_bootstrap_user_json}" != "null" && -n "${stored_bootstrap_user_json}" ]]; then
+      BOOTSTRAP_USER="$(jq -r '.' <<<"${stored_bootstrap_user_json}")"
+    fi
+  fi
+
+  if [[ -z "${BOOTSTRAP_USER:-}" ]]; then
+    log_error "BOOTSTRAP_USER must be provided via --bootstrap-user, environment, or recorded installer state."
     return 1
   fi
 
@@ -61,7 +69,20 @@ stage_apply() {
 }
 
 stage_verify() {
+  local stored_bootstrap_user_json="null"
   local cleanup_status
+
+  if [[ -z "${BOOTSTRAP_USER:-}" ]]; then
+    stored_bootstrap_user_json="$(state_get_value '.runtime.bootstrap_user' 2>/dev/null || true)"
+    if [[ "${stored_bootstrap_user_json}" != "null" && -n "${stored_bootstrap_user_json}" ]]; then
+      BOOTSTRAP_USER="$(jq -r '.' <<<"${stored_bootstrap_user_json}")"
+    fi
+  fi
+
+  if [[ -z "${BOOTSTRAP_USER:-}" ]]; then
+    log_error "BOOTSTRAP_USER must be available to verify cleanup."
+    return 1
+  fi
 
   cleanup_status="$(id "${BOOTSTRAP_USER}" >/dev/null 2>&1; printf '%s' "$?")"
   if [[ "${cleanup_status}" -eq 0 ]]; then
