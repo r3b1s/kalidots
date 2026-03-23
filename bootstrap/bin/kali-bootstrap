@@ -73,6 +73,28 @@ main() {
 
   run_selected_stages
 
+  if [[ "${cleanup_only_requested}" == "true" ]]; then
+    if command -v gum >/dev/null 2>&1; then
+      printf '\n'
+      gum style \
+        --border double \
+        --border-foreground 203 \
+        --padding "1 3" \
+        --margin "1 0" \
+        --bold \
+        "  Bootstrap User Removed  "
+      printf '\n'
+      gum style --foreground 10 "  Cleanup stage applied and verified."
+      printf '\n'
+    else
+      printf '\n'
+      log_info "Bootstrap user cleanup complete."
+      log_info "Cleanup stage applied and verified."
+      printf '\n'
+    fi
+    return 0
+  fi
+
   # Show completion summary
   local target_user_display="${TARGET_USER:-<target user>}"
   local cleanup_cmd="sudo $(realpath "$0") --stage bootstrap-user-cleanup"
