@@ -3,7 +3,7 @@
 icons = "none"
 
 [theme]
-theme = "dracula"
+theme = "plain"
 
 [[block]]
 block = "custom"

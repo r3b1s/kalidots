@@ -14,17 +14,20 @@ if i3-msg "[con_mark=\"${MARK}\"]" scratchpad show 2>/dev/null | grep -q '"succe
   exit 0
 fi
 
+# Record existing window IDs so we can detect the new one
+BEFORE="$(i3-msg -t get_tree | jq -r '.. | .id? // empty' | sort)"
+
 # Launch the application
 eval "${LAUNCH_CMD}" &
 disown
 
-# Wait for the new window to appear (up to 5 seconds)
+# Wait for a new window to appear (up to 5 seconds)
 for _ in $(seq 1 50); do
   sleep 0.1
-  NEW_ID="$(i3-msg -t get_tree | jq -r '.. | select(.focused? == true) | .id // empty' 2>/dev/null || true)"
+  AFTER="$(i3-msg -t get_tree | jq -r '.. | .id? // empty' | sort)"
+  NEW_ID="$(comm -13 <(echo "${BEFORE}") <(echo "${AFTER}") | tail -1)"
   if [[ -n "${NEW_ID}" ]]; then
-    # Check if this is a new unmarked window (not the one we had focus on before)
-    i3-msg "mark ${MARK}; move scratchpad; [con_mark=\"${MARK}\"] scratchpad show" 2>/dev/null && exit 0
+    i3-msg "[con_id=${NEW_ID}] mark ${MARK}; [con_mark=\"${MARK}\"] move scratchpad; [con_mark=\"${MARK}\"] scratchpad show" 2>/dev/null && exit 0
   fi
 done
 
