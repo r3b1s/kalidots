@@ -22,11 +22,11 @@ format_alt = " $icon {$ip|Down} "
 interval = 10
 [block.theme_overrides]
 start_separator = ""
-idle_bg = "#8d090a"
+idle_bg = "#050007"
 idle_fg = "#ffd4e5"
-info_bg = "#b30a0b"
+info_bg = "#050007"
 info_fg = "#fff0f7"
-good_bg = "#d10a0a"
+good_bg = "#050007"
 good_fg = "#fff3f9"
 
 [[block]]
