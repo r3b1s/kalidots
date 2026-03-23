@@ -33,14 +33,6 @@ stage_apply() {
   install_user_file "${tmp_config}" ".config/i3/config"
   rm -f "${tmp_config}"
 
-  install_user_dir ".config/picom"
-  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/picom/picom-transparent.conf" \
-    ".config/picom/picom-transparent.conf"
-  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/picom/picom-opaque.conf" \
-    ".config/picom/picom-opaque.conf"
-  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/picom/picom-transparent.conf" \
-    ".config/picom/picom.conf"
-
   # Deploy helper scripts
   install_user_dir ".config/i3/scripts"
   local script
@@ -90,17 +82,12 @@ stage_verify() {
 
   [[ -f "${target_home}/.config/i3/config" ]] || { log_error "i3 config not deployed"; return 1; }
   [[ -d "${target_home}/.config/i3/scripts" ]] || { log_error "i3 scripts directory not deployed"; return 1; }
-  [[ -f "${target_home}/.config/picom/picom.conf" ]] || { log_error "picom active config not deployed"; return 1; }
-  [[ -f "${target_home}/.config/picom/picom-transparent.conf" ]] || { log_error "picom transparent profile not deployed"; return 1; }
-  [[ -f "${target_home}/.config/picom/picom-opaque.conf" ]] || { log_error "picom opaque profile not deployed"; return 1; }
   grep -q 'bindsym $mod+h focus left' "${target_home}/.config/i3/config" || { log_error "i3 config missing hjkl bindings"; return 1; }
-  grep -q 'toggle-transparency.sh' "${target_home}/.config/i3/config" || { log_error "i3 config missing transparency toggle binding"; return 1; }
   grep -q 'status_command $scripts/status-command.sh' "${target_home}/.config/i3/config" || { log_error "i3 config missing status wrapper"; return 1; }
-  grep -q 'picom --config' "${target_home}/.config/i3/config" || { log_error "i3 config missing picom config startup"; return 1; }
   grep -q '__TARGET_HOME__' "${target_home}/.config/i3/config" && { log_error "i3 config still has unresolved placeholders"; return 1; }
 
   # Verify key scripts are deployed and executable
-  local required_scripts=(status-command.sh toggle-transparency.sh toggle-maximize.sh cycle-gaps.sh cycle-borders.sh scratchpad-launch.sh power-menu.sh screen-record.sh)
+  local required_scripts=(status-command.sh toggle-maximize.sh cycle-gaps.sh cycle-borders.sh scratchpad-launch.sh power-menu.sh screen-record.sh)
   for script in "${required_scripts[@]}"; do
     [[ -x "${target_home}/.config/i3/scripts/${script}" ]] || { log_error "Script not deployed or not executable: ${script}"; return 1; }
   done
