@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+trap 'echo "[FATAL] Script exited unexpectedly at line ${LINENO} (exit code $?): ${BASH_COMMAND}" >&2' ERR
+
 BOOTSTRAP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # shellcheck source=../lib/log.sh

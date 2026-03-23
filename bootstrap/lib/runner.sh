@@ -35,7 +35,7 @@ inspect_stage_metadata() {
   local metadata_output
 
   metadata_output="$(
-    BOOTSTRAP_ROOT="${BOOTSTRAP_ROOT}" bash -lc '
+    BOOTSTRAP_ROOT="${BOOTSTRAP_ROOT}" bash --noprofile --norc -c '
       set -euo pipefail
       stage_id=""
       stage_description=""
@@ -81,7 +81,7 @@ load_stage_registry() {
   while IFS= read -r stage_file; do
     [[ -n "${stage_file}" ]] || continue
     stage_files+=("${stage_file}")
-  done < <(discover_stage_files | sort)
+  done < <(discover_stage_files | sort -V)
 
   if [[ "${#stage_files[@]}" -eq 0 ]]; then
     return 1
