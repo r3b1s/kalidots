@@ -2,7 +2,7 @@
 
 # shellcheck disable=SC2034
 stage_id="desktop-apps"
-stage_description="Configure Rofi, Alacritty, shell ergonomics, Starship prompt, and status bar"
+stage_description="Configure Rofi, Alacritty, zsh ergonomics, Firefox policy, and status bar"
 stage_profiles=("desktop")
 
 # shellcheck disable=SC1091
@@ -127,28 +127,37 @@ install_firefox_policy() {
 }
 
 install_i3status_rs() {
+  local cargo_bin="${HOME}/.cargo/bin/cargo"
+  local rustup_bin="${HOME}/.cargo/bin/rustup"
+
   if command -v i3status-rs >/dev/null 2>&1; then
     log_info "i3status-rs already installed"
     return 0
   fi
 
-  if ! command -v cargo >/dev/null 2>&1; then
-    log_warn "cargo not available — skipping i3status-rs build (install tools profile for Rust toolchain)"
-    return 0
+  if ! command -v cargo >/dev/null 2>&1 && [[ ! -x "${cargo_bin}" ]]; then
+    log_info "Installing minimal Rust toolchain for i3status-rs build"
+    curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
   fi
 
-  # Ensure a default toolchain is set (rustup may be installed without one)
-  if command -v rustup >/dev/null 2>&1 && ! rustup toolchain list 2>/dev/null | grep -q default; then
+  export PATH="${HOME}/.cargo/bin:${PATH}"
+
+  if [[ -x "${rustup_bin}" ]] && ! "${rustup_bin}" toolchain list 2>/dev/null | grep -q '^stable'; then
     log_info "Setting up stable Rust toolchain for i3status-rs build"
-    rustup default stable
+    "${rustup_bin}" default stable
   fi
 
-  log_info "Building i3status-rs from source"
+  if ! command -v cargo >/dev/null 2>&1; then
+    log_error "cargo unavailable after Rust toolchain bootstrap"
+    return 1
+  fi
+
+  log_info "Building i3status-rs from source (manual install)"
   local build_dir
   build_dir="$(mktemp -d)"
   git clone --depth 1 https://github.com/greshake/i3status-rust.git "${build_dir}"
-  cargo install --path "${build_dir}" --locked --root /usr/local
-  # Deploy icons and themes to system share
+  cargo build --manifest-path "${build_dir}/Cargo.toml" --release --locked
+  install -m 755 "${build_dir}/target/release/i3status-rs" /usr/local/bin/i3status-rs
   if [[ -d "${build_dir}/files" ]]; then
     install -d /usr/local/share/i3status-rust
     cp -r "${build_dir}/files/"* /usr/local/share/i3status-rust/
@@ -177,73 +186,32 @@ install_nerd_font() {
   fc-cache -f "${font_dir}"
 }
 
-install_starship() {
-  if command -v starship >/dev/null 2>&1; then
-    log_info "Starship already installed: $(starship --version | head -1)"
-    return 0
-  fi
-
-  log_info "Installing Starship via install.sh (external exception: not in kali-rolling)"
-  curl -sS https://starship.rs/install.sh | sh -s -- --yes
-}
-
 upgrade_i3_bar_config() {
   local target_home="$1"
-  local i3_config="${target_home}/.config/i3/config"
 
-  [[ -f "${i3_config}" ]] || return 0
-
+  [[ -f "${target_home}/.config/i3/config" ]] || return 0
   if command -v i3status-rs >/dev/null 2>&1; then
-    log_info "i3status-rs found; upgrading bar config"
-    sed -i 's|status_command i3status$|status_command i3status-rs|' "${i3_config}"
+    log_info "i3status-rs available; status-command wrapper will prefer it"
   else
-    log_info "i3status-rs not found; keeping i3status fallback"
+    log_info "i3status-rs unavailable; status-command wrapper will use themed i3status fallback"
   fi
 }
 
-ensure_user_shell_startup_chain() {
+configure_zsh_user() {
   local target_home="$1"
-  local bashrc="${target_home}/.bashrc"
-  local bash_profile="${target_home}/.bash_profile"
-  local profile="${target_home}/.profile"
-  local drop_in_marker="# Source bashrc.d drop-ins"
-  local bashrc_source_marker="# Source .bashrc for interactive shells"
+  local zsh_path
 
-  if ! grep -qF "${drop_in_marker}" "${bashrc}" 2>/dev/null; then
-    cat >> "${bashrc}" <<'BASHRC_DROPIN'
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/zshrc" ".zshrc"
+  zsh_path="$(command -v zsh)"
+  usermod --shell "${zsh_path}" "${TARGET_USER}"
+}
 
-# Source bashrc.d drop-ins
-if [[ -d "${HOME}/.bashrc.d" ]]; then
-  for _dropin in "${HOME}/.bashrc.d"/*.sh; do
-    [[ -r "${_dropin}" ]] && source "${_dropin}"
-  done
-  unset _dropin
-fi
-BASHRC_DROPIN
-    chown "${TARGET_USER}:${TARGET_USER}" "${bashrc}"
-  fi
+remove_starship() {
+  local target_home="$1"
 
-  if ! grep -qF "${bashrc_source_marker}" "${bash_profile}" 2>/dev/null; then
-    cat >> "${bash_profile}" <<'BASH_PROFILE_DROPIN'
-
-# Source .bashrc for interactive shells
-if [[ -f "${HOME}/.bashrc" ]]; then
-  source "${HOME}/.bashrc"
-fi
-BASH_PROFILE_DROPIN
-    chown "${TARGET_USER}:${TARGET_USER}" "${bash_profile}"
-  fi
-
-  if ! grep -qF "${bashrc_source_marker}" "${profile}" 2>/dev/null; then
-    cat >> "${profile}" <<'PROFILE_DROPIN'
-
-# Source .bashrc for interactive shells
-if [ -n "${BASH_VERSION:-}" ] && [ -f "${HOME}/.bashrc" ]; then
-  . "${HOME}/.bashrc"
-fi
-PROFILE_DROPIN
-    chown "${TARGET_USER}:${TARGET_USER}" "${profile}"
-  fi
+  rm -f "${target_home}/.bashrc.d/50-starship.sh" \
+        "${target_home}/.config/starship.toml" \
+        /usr/local/bin/starship
 }
 
 stage_apply() {
@@ -269,21 +237,10 @@ stage_apply() {
 
   # Deploy shell ergonomics
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/inputrc" ".inputrc"
+  configure_zsh_user "${target_home}"
+  remove_starship "${target_home}"
 
-  # Deploy bashrc drop-in
-  install_user_dir ".bashrc.d"
-  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/bashrc.d/50-starship.sh" ".bashrc.d/50-starship.sh"
-
-  ensure_user_shell_startup_chain "${target_home}"
-
-  # Install Starship (external exception)
-  install_starship
-
-  # Deploy Starship config
-  install_user_dir ".config"
-  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/starship.toml" ".config/starship.toml"
-
-  # Build i3status-rs if cargo is available
+  # Build i3status-rs from source, bootstrapping Rust if needed.
   install_i3status_rs
 
   # Deploy i3status-rs built-in icons/themes to user XDG config (highest priority lookup)
@@ -304,8 +261,9 @@ stage_apply() {
   # Deploy i3status-rs config
   install_user_dir ".config/i3status-rust"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/i3status-rust/config.toml" ".config/i3status-rust/config.toml"
+  install_user_dir ".config/i3status"
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/i3status/config" ".config/i3status/config"
 
-  # Upgrade bar config if i3status-rs is available
   upgrade_i3_bar_config "${target_home}"
 }
 
@@ -330,24 +288,20 @@ stage_verify() {
   [[ -f "${target_home}/.config/alacritty/alacritty.toml" ]] || { log_error "Alacritty config not deployed"; return 1; }
   [[ -f "${target_home}/.inputrc" ]] || { log_error "inputrc not deployed"; return 1; }
   grep -q "set editing-mode vi" "${target_home}/.inputrc" || { log_error "inputrc missing vi-mode"; return 1; }
-  [[ -f "${target_home}/.bashrc.d/50-starship.sh" ]] || { log_error "Starship bashrc drop-in not deployed"; return 1; }
-  grep -q 'Source bashrc.d drop-ins' "${target_home}/.bashrc" || { log_error ".bashrc does not source bashrc.d drop-ins"; return 1; }
-  if [[ -f "${target_home}/.bash_profile" ]]; then
-    grep -q 'Source .bashrc for interactive shells' "${target_home}/.bash_profile" || { log_error ".bash_profile does not source .bashrc"; return 1; }
-  elif [[ -f "${target_home}/.profile" ]]; then
-    grep -q 'Source .bashrc for interactive shells' "${target_home}/.profile" || { log_error ".profile does not source .bashrc"; return 1; }
-  else
-    log_error "No login-shell startup file found for target user"
-    return 1
-  fi
-  command -v starship >/dev/null 2>&1 || { log_error "starship binary not found"; return 1; }
-  [[ -f "${target_home}/.config/starship.toml" ]] || { log_error "Starship config not deployed"; return 1; }
-  grep -q 'git:' "${target_home}/.config/starship.toml" || { log_error "Starship config missing git branch segment"; return 1; }
+  [[ -f "${target_home}/.zshrc" ]] || { log_error ".zshrc not deployed"; return 1; }
+  grep -q 'bindkey -v' "${target_home}/.zshrc" || { log_error ".zshrc missing vi mode"; return 1; }
+  [[ "$(getent passwd "${TARGET_USER}" | cut -d: -f7)" == "$(command -v zsh)" ]] || { log_error "Target user shell is not zsh"; return 1; }
+  [[ ! -f "${target_home}/.bashrc.d/50-starship.sh" ]] || { log_error "Starship bash drop-in should be removed"; return 1; }
+  [[ ! -f "${target_home}/.config/starship.toml" ]] || { log_error "Starship config should be removed"; return 1; }
   [[ -d "${target_home}/.mozilla/firefox/operator" ]] || { log_error "Firefox operator profile directory not created"; return 1; }
   [[ -f "${target_home}/.mozilla/firefox/profiles.ini" ]] || { log_error "Firefox profiles.ini missing"; return 1; }
   grep -q '^Name=operator$' "${target_home}/.mozilla/firefox/profiles.ini" || { log_error "Firefox operator profile not registered"; return 1; }
   [[ -f /etc/firefox/policies/policies.json ]] || { log_error "Firefox enterprise policy not installed"; return 1; }
   grep -q '"DisableTelemetry": true' /etc/firefox/policies/policies.json || { log_error "Firefox telemetry policy missing"; return 1; }
+  grep -q '"DisableFirefoxStudies": true' /etc/firefox/policies/policies.json || { log_error "Firefox studies policy missing"; return 1; }
+  command -v btop >/dev/null 2>&1 || { log_error "btop not found in PATH"; return 1; }
+  [[ -f "${target_home}/.config/i3status/config" ]] || { log_error "i3status fallback config not deployed"; return 1; }
+  command -v i3status-rs >/dev/null 2>&1 || { log_error "i3status-rs binary not found"; return 1; }
   if [[ -d /usr/lib/firefox-esr ]]; then
     [[ -f /usr/lib/firefox-esr/distribution/policies.json ]] || { log_error "Firefox ESR distribution policy missing"; return 1; }
   fi

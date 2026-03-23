@@ -104,6 +104,7 @@ stage_apply() {
   if command -v go >/dev/null 2>&1 || runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" bash -c 'command -v go' >/dev/null 2>&1; then
     log_info "Installing Go tools for ${TARGET_USER}"
     runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${user_gopath}" HOME="${target_home}" bash -c 'go install golang.org/x/tools/gopls@latest'
+    runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${user_gopath}" HOME="${target_home}" bash -c 'go install github.com/containers/podman-tui@latest'
   fi
 
   if command -v pipx >/dev/null 2>&1; then
@@ -152,6 +153,7 @@ stage_verify() {
   runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" HOME="${target_home}" bash -c 'command -v cargo' >/dev/null 2>&1 || { log_error "cargo not available for target user"; return 1; }
   command -v gum >/dev/null 2>&1 || { log_error "gum not available"; return 1; }
   runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${user_gopath}" HOME="${target_home}" bash -c 'command -v gopls' >/dev/null 2>&1 || { log_error "gopls not available for target user"; return 1; }
+  runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" GOPATH="${user_gopath}" HOME="${target_home}" bash -c 'command -v podman-tui' >/dev/null 2>&1 || { log_error "podman-tui not available for target user"; return 1; }
   runuser -u "${TARGET_USER}" -- env PATH="${user_tool_path}" HOME="${target_home}" bash -c 'command -v pwn' >/dev/null 2>&1 || { log_error "pwntools entrypoint not available for target user"; return 1; }
   [[ -d "/opt/tools/PayloadsAllTheThings/.git" ]] || { log_error "PayloadsAllTheThings not cloned"; return 1; }
 

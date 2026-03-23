@@ -1,0 +1,11 @@
+# Use zsh with vi-style editing while keeping the distro prompt/theme defaults.
+bindkey -v
+export KEYTIMEOUT=1
+
+# Reuse simple PATH/export snippets already dropped into ~/.bashrc.d by tooling stages.
+if [[ -d "${HOME}/.bashrc.d" ]]; then
+  for _dropin in "${HOME}/.bashrc.d"/*.sh; do
+    [[ -r "${_dropin}" ]] && source "${_dropin}"
+  done
+  unset _dropin
+fi

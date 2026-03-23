@@ -159,6 +159,9 @@ stage_apply() {
     ".config/i3status-rust/themes/pink-rot.toml"
   install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/i3status-rs-config.toml" \
     ".config/i3status-rust/config.toml"
+  install_user_dir ".config/i3status"
+  install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/i3status.conf" \
+    ".config/i3status/config"
 
   # 5. dunst — notification colors
   install_user_dir ".config/dunst"
@@ -166,24 +169,23 @@ stage_apply() {
     ".config/dunst/dunstrc"
 
   # 6. btop — system monitor theme
+  install_user_dir ".config/btop"
   install_user_dir ".config/btop/themes"
+  install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/btop.conf" \
+    ".config/btop/btop.conf"
   install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/btop.theme" \
     ".config/btop/themes/pink-rot.theme"
 
-  # 7. Starship prompt — themed colors
-  install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/starship.toml" \
-    ".config/starship.toml"
-
-  # 8. GTK / Thunar — dark theme
+  # 7. GTK / Thunar — dark theme
   apt-get install -y -qq arc-theme 2>/dev/null || log_warn "arc-theme not available in repos"
   install_user_dir ".config/gtk-3.0"
   install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/gtk3-settings.ini" \
     ".config/gtk-3.0/settings.ini"
 
-  # 9. Wallpaper for i3 via ~/.wallpaper, which the desktop i3 config loads with feh.
+  # 8. Wallpaper for i3 via ~/.wallpaper, which the desktop i3 config loads with feh.
   install_pink_rot_wallpaper "${target_home}"
 
-  # 10. Neovim — theme-specific colorscheme overlay for LazyVim
+  # 9. Neovim — theme-specific colorscheme overlay for LazyVim
   if [[ -d "${target_home}/.config/nvim" ]]; then
     install_user_dir ".config/nvim/colors"
     install_user_dir ".config/nvim/lua/plugins"
@@ -195,7 +197,7 @@ stage_apply() {
     log_warn "Neovim config not found — skipping pink-rot Neovim theme overlay"
   fi
 
-  # 11. Firefox — apply theme CSS to all profiles and enable chrome stylesheets here only.
+  # 10. Firefox — apply theme CSS to all profiles and enable chrome stylesheets here only.
   apply_firefox_theme "${target_home}"
 }
 
@@ -221,9 +223,10 @@ stage_verify() {
   # Verify other theme files
   [[ -f "${target_home}/.config/rofi/config.rasi" ]] || { log_error "Rofi theme not deployed"; return 1; }
   [[ -f "${target_home}/.config/i3status-rust/themes/pink-rot.toml" ]] || { log_error "i3status-rs theme not deployed"; return 1; }
+  [[ -f "${target_home}/.config/i3status/config" ]] || { log_error "i3status fallback theme not deployed"; return 1; }
   [[ -f "${target_home}/.config/dunst/dunstrc" ]] || { log_error "dunst config not deployed"; return 1; }
+  [[ -f "${target_home}/.config/btop/btop.conf" ]] || { log_error "btop config not deployed"; return 1; }
   [[ -f "${target_home}/.config/btop/themes/pink-rot.theme" ]] || { log_error "btop theme not deployed"; return 1; }
-  [[ -f "${target_home}/.config/starship.toml" ]] || { log_error "Starship theme not deployed"; return 1; }
   [[ -f "${target_home}/.config/gtk-3.0/settings.ini" ]] || { log_error "GTK settings not deployed"; return 1; }
   [[ -s "${target_home}/.wallpaper" ]] || { log_error "Wallpaper not downloaded to ${target_home}/.wallpaper"; return 1; }
 

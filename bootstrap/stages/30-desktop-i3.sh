@@ -54,10 +54,10 @@ stage_apply() {
 
   # Enable VM guest agents for clipboard sharing and display auto-resize
   if command -v spice-vdagentd >/dev/null 2>&1; then
-    systemctl enable spice-vdagentd 2>/dev/null || true
+    systemctl enable --now spice-vdagentd 2>/dev/null || true
   fi
   if command -v qemu-ga >/dev/null 2>&1; then
-    systemctl enable qemu-guest-agent 2>/dev/null || true
+    systemctl enable --now qemu-guest-agent 2>/dev/null || true
   fi
 
   # Flatpak setup for KeePassXC
@@ -89,7 +89,7 @@ stage_verify() {
   grep -q '__TARGET_HOME__' "${target_home}/.config/i3/config" && { log_error "i3 config still has unresolved placeholders"; return 1; }
 
   # Verify key scripts are deployed and executable
-  local required_scripts=(status-command.sh toggle-maximize.sh cycle-gaps.sh cycle-borders.sh scratchpad-launch.sh power-menu.sh screen-record.sh kali-menu.sh screenshot-menu.sh system-update.sh)
+  local required_scripts=(status-command.sh toggle-maximize.sh cycle-gaps.sh cycle-borders.sh scratchpad-launch.sh power-menu.sh screen-record.sh kali-menu.sh screenshot-menu.sh system-update.sh spice-display-init.sh)
   for script in "${required_scripts[@]}"; do
     [[ -x "${target_home}/.config/i3/scripts/${script}" ]] || { log_error "Script not deployed or not executable: ${script}"; return 1; }
   done

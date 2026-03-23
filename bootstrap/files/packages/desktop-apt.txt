@@ -3,6 +3,8 @@ i3
 autotiling
 rofi
 alacritty
+zsh
+btop
 fontconfig
 i3status
 feh

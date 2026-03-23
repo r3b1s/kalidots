@@ -15,7 +15,7 @@ set $urgent-bg #e53935
 set $indicator #5294e2
 
 # Font
-font pango:monospace 10
+font pango:JetBrainsMono Nerd Font 10
 
 # Settings
 focus_follows_mouse yes
@@ -54,16 +54,16 @@ bindsym $mod+Shift+Down move down; focus down
 bindsym $mod+Shift+Up move up; focus up
 bindsym $mod+Shift+Right move right; focus right
 
-# ─── Resize (Ctrl+HJKL + arrows, 5 ppt) ────────────────────────────────────────
+# ─── Resize (Ctrl+HJKL + arrows, 5 px or 5 ppt) ───────────────────────────────
 
-bindsym $mod+Ctrl+h resize shrink width 5 ppt
-bindsym $mod+Ctrl+l resize grow width 5 ppt
-bindsym $mod+Ctrl+k resize grow height 5 ppt
-bindsym $mod+Ctrl+j resize shrink height 5 ppt
-bindsym $mod+Ctrl+Left resize shrink width 5 ppt
-bindsym $mod+Ctrl+Right resize grow width 5 ppt
-bindsym $mod+Ctrl+Up resize grow height 5 ppt
-bindsym $mod+Ctrl+Down resize shrink height 5 ppt
+bindsym $mod+Ctrl+h resize shrink width 5 px or 5 ppt
+bindsym $mod+Ctrl+l resize grow width 5 px or 5 ppt
+bindsym $mod+Ctrl+k resize grow height 5 px or 5 ppt
+bindsym $mod+Ctrl+j resize shrink height 5 px or 5 ppt
+bindsym $mod+Ctrl+Left resize shrink width 5 px or 5 ppt
+bindsym $mod+Ctrl+Right resize grow width 5 px or 5 ppt
+bindsym $mod+Ctrl+Up resize grow height 5 px or 5 ppt
+bindsym $mod+Ctrl+Down resize shrink height 5 px or 5 ppt
 
 # ─── Nudge Floating (Shift+Alt+HJKL, 20px) ─────────────────────────────────────
 
@@ -170,9 +170,9 @@ bindsym $mod+Shift+Ctrl+period mark sp1; move scratchpad
 bindsym $mod+u [con_mark="sp2"] scratchpad show
 bindsym $mod+Shift+Ctrl+u mark sp2; move scratchpad
 
-# ─── Auto-Launching Scratchpads ────────────────────────────────────────────────
+# ─── Quick Launchers ───────────────────────────────────────────────────────────
 
-bindsym $mod+p exec --no-startup-id $scripts/scratchpad-launch.sh sp-btop "$term -e btop"
+bindsym $mod+p exec --no-startup-id $term -e btop
 bindsym $mod+a exec --no-startup-id $scripts/scratchpad-launch.sh sp-browser firefox-esr
 bindsym $mod+Shift+e exec --no-startup-id $scripts/scratchpad-launch.sh sp-email thunderbird
 bindsym $mod+t exec --no-startup-id $scripts/scratchpad-launch.sh sp-term "$term"
@@ -288,7 +288,7 @@ exec --no-startup-id feh --bg-fill __TARGET_HOME__/.wallpaper 2>/dev/null
 exec --no-startup-id dunst
 exec --no-startup-id nm-applet
 exec --no-startup-id clipmenud
-exec --no-startup-id spice-vdagent
+exec --no-startup-id $scripts/spice-display-init.sh
 exec --no-startup-id blueman-applet
 exec --no-startup-id xautolock -time 10 -locker i3lock
 exec --no-startup-id dex --autostart -e i3
