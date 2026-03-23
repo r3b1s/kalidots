@@ -301,6 +301,8 @@ exec_always --no-startup-id autotiling
 bar {
   position top
   status_command $scripts/status-command.sh
+  tray_output primary
+  tray_padding 2
 }
 
 # ─── Gaps and Appearance ───────────────────────────────────────────────────────

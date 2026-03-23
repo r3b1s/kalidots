@@ -7,13 +7,23 @@ command = "[ -f /tmp/i3-recording-active ] && echo REC"
 format = " $text "
 interval = 2
 [block.theme_overrides]
+idle_bg = "#5c1626"
 idle_fg = "#ff5555"
+info_bg = "#7b2235"
+info_fg = "#fff3f6"
 
 [[block]]
 block = "net"
 format = " $icon {$signal_strength $ssid $frequency|Wired} via $device "
 format_alt = " $icon {$ip|Down} "
 interval = 10
+[block.theme_overrides]
+idle_bg = "#2a2238"
+idle_fg = "#d8ccff"
+info_bg = "#3a2e52"
+info_fg = "#f3ecff"
+good_bg = "#4c3e6e"
+good_fg = "#f7f3ff"
 
 [[block]]
 block = "disk_space"
@@ -24,12 +34,30 @@ interval = 30
 warning = 20.0
 alert = 10.0
 format = " $icon $available.eng(w:2) "
+[block.theme_overrides]
+idle_bg = "#273019"
+idle_fg = "#d9f2b0"
+info_bg = "#32411d"
+info_fg = "#eef8d8"
+warning_bg = "#8b5e1a"
+warning_fg = "#fff4d9"
+critical_bg = "#b83a25"
+critical_fg = "#fff1ec"
 
 [[block]]
 block = "memory"
 format = " $icon $mem_total_used_percents.eng(w:2) "
 format_alt = " $icon_swap $swap_used_percents.eng(w:2) "
 interval = 5
+[block.theme_overrides]
+idle_bg = "#1f3840"
+idle_fg = "#cceff7"
+info_bg = "#27515c"
+info_fg = "#eefcff"
+warning_bg = "#8d5f10"
+warning_fg = "#fff3cf"
+critical_bg = "#a3362a"
+critical_fg = "#fff0ee"
 
 [[block]]
 block = "cpu"
@@ -37,15 +65,40 @@ interval = 5
 info_cpu = 20
 warning_cpu = 50
 critical_cpu = 90
+[block.theme_overrides]
+idle_bg = "#3b2418"
+idle_fg = "#ffd8c2"
+info_bg = "#5b3421"
+info_fg = "#fff2eb"
+warning_bg = "#9b5411"
+warning_fg = "#fff1dc"
+critical_bg = "#bf2f2f"
+critical_fg = "#fff2f2"
 
 [[block]]
 block = "load"
 format = " $icon $1m.eng(w:4) "
 interval = 5
+[block.theme_overrides]
+idle_bg = "#433118"
+idle_fg = "#f5dfb2"
+info_bg = "#5a431d"
+info_fg = "#fff5dd"
+warning_bg = "#8e6a10"
+warning_fg = "#fff6d8"
+critical_bg = "#b03e1d"
+critical_fg = "#fff1ea"
 
 [[block]]
 block = "sound"
 format = " $icon $volume "
+[block.theme_overrides]
+idle_bg = "#3b2145"
+idle_fg = "#f0d6ff"
+info_bg = "#593067"
+info_fg = "#fbf0ff"
+warning_bg = "#7d3f82"
+warning_fg = "#fff1ff"
 [[block.click]]
 button = "left"
 cmd = "pavucontrol"
@@ -54,3 +107,8 @@ cmd = "pavucontrol"
 block = "time"
 interval = 5
 format = " $icon $timestamp.datetime(f:'%a %d %b %R') "
+[block.theme_overrides]
+idle_bg = "#20374d"
+idle_fg = "#d5ecff"
+info_bg = "#30506f"
+info_fg = "#f1f8ff"

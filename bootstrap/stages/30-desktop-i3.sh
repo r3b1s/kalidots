@@ -12,6 +12,57 @@ source "${BOOTSTRAP_ROOT}/lib/desktop.sh"
 # shellcheck disable=SC1091
 source "${BOOTSTRAP_ROOT}/lib/users.sh"
 
+prompt_enable_qemu_hyprland_resize_fix() {
+  local stored_setting
+  local answer=""
+
+  stored_setting="$(state_get_value '.runtime.qemu_hyprland_screen_resize_fix // empty' 2>/dev/null || true)"
+  if [[ -n "${stored_setting}" && "${stored_setting}" != "\"\"" ]]; then
+    jq -r '.' <<<"${stored_setting}"
+    return 0
+  fi
+
+  if [[ "${ASSUME_YES:-false}" == "true" ]]; then
+    answer="false"
+  elif command -v gum >/dev/null 2>&1; then
+    if gum confirm "Enable qemu + hyprland screen resizing fix?"; then
+      answer="true"
+    else
+      answer="false"
+    fi
+  else
+    answer="$(prompt_with_fallback "Enable qemu + hyprland screen resizing fix? [y/N]" "y/N")"
+    answer="$(trim_whitespace "${answer}")"
+    case "${answer,,}" in
+      y|yes|true)
+        answer="true"
+        ;;
+      *)
+        answer="false"
+        ;;
+    esac
+  fi
+
+  state_set_value '.runtime.qemu_hyprland_screen_resize_fix' "${answer}"
+  printf '%s\n' "${answer}"
+}
+
+configure_qemu_hyprland_resize_fix() {
+  local target_home="$1"
+  local enabled="$2"
+  local marker_dir="${target_home}/.config/kalidots"
+  local marker_file="${marker_dir}/qemu-hyprland-screen-resize-fix.enabled"
+
+  install -d -m 755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${marker_dir}"
+  if [[ "${enabled}" == "true" ]]; then
+    printf 'enabled\n' > "${marker_file}"
+    chown "${TARGET_USER}:${TARGET_USER}" "${marker_file}"
+    chmod 644 "${marker_file}"
+  else
+    rm -f "${marker_file}"
+  fi
+}
+
 stage_apply() {
   load_or_prompt_target_user >/dev/null
 
@@ -21,7 +72,9 @@ stage_apply() {
   ensure_apt_packages "${BOOTSTRAP_ROOT}/files/packages/desktop-apt.txt"
 
   local target_home
+  local qemu_hyprland_resize_fix_enabled
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
+  qemu_hyprland_resize_fix_enabled="$(prompt_enable_qemu_hyprland_resize_fix)"
 
   # Deploy i3 config with resolved home path
   local tmp_config
@@ -40,6 +93,7 @@ stage_apply() {
     [[ -f "${script}" ]] || continue
     install_user_file "${script}" ".config/i3/scripts/$(basename "${script}")" 755
   done
+  configure_qemu_hyprland_resize_fix "${target_home}" "${qemu_hyprland_resize_fix_enabled}"
 
   # Build and install clipmenu from source (not in Kali repos)
   if ! command -v clipmenud >/dev/null 2>&1; then
@@ -80,7 +134,6 @@ stage_verify() {
   command -v rofi >/dev/null 2>&1 || { log_error "rofi not found in PATH"; return 1; }
   command -v alacritty >/dev/null 2>&1 || { log_error "alacritty not found in PATH"; return 1; }
   command -v clipmenud >/dev/null 2>&1 || { log_error "clipmenud not found in PATH"; return 1; }
-  command -v xev >/dev/null 2>&1 || { log_error "xev not found in PATH"; return 1; }
   command -v xrandr >/dev/null 2>&1 || { log_error "xrandr not found in PATH"; return 1; }
   command -v xsettingsd >/dev/null 2>&1 || { log_error "xsettingsd not found in PATH"; return 1; }
 
@@ -96,4 +149,13 @@ stage_verify() {
   for script in "${required_scripts[@]}"; do
     [[ -x "${target_home}/.config/i3/scripts/${script}" ]] || { log_error "Script not deployed or not executable: ${script}"; return 1; }
   done
+
+  local resize_fix_setting
+  resize_fix_setting="$(state_get_value '.runtime.qemu_hyprland_screen_resize_fix // "false"' 2>/dev/null || true)"
+  if [[ "${resize_fix_setting}" == "true" ]]; then
+    [[ -f "${target_home}/.config/kalidots/qemu-hyprland-screen-resize-fix.enabled" ]] || {
+      log_error "qemu + hyprland screen resizing fix marker not deployed"
+      return 1
+    }
+  fi
 }
