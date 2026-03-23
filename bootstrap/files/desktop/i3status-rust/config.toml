@@ -1,5 +1,6 @@
 [icons]
-icons = "material-nf"
+# "none" is always built-in; switch to "material-nf" if Nerd Fonts are installed
+icons = "none"
 
 [theme]
 theme = "dracula"
