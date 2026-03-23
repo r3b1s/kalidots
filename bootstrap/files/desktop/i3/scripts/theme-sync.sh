@@ -9,7 +9,7 @@ fi
 cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/kalidots"
 state_file="${cache_dir}/theme-sync.state"
 lock_dir="${XDG_RUNTIME_DIR:-/tmp}/kalidots-theme-sync.lock"
-icon_override_file="${HOME}/.config/kalidots/icon-theme.override"
+theme_override_file="${HOME}/.config/kalidots/gtk-theme.override"
 
 trim_quotes() {
   local value="${1:-}"
@@ -47,7 +47,7 @@ theme_signature() {
   local gtk_settings="${HOME}/.config/gtk-3.0/settings.ini"
   local theme_name
   local icon_theme
-  local icon_override
+  local theme_override
   local font_name
   local color_scheme
   local prefer_dark
@@ -61,14 +61,14 @@ theme_signature() {
   if [[ -z "${theme_name}" ]]; then
     theme_name="$(read_ini_value "${gtk_settings}" "gtk-theme-name")"
   fi
+  if [[ -f "${theme_override_file}" ]]; then
+    theme_override="$(trim_whitespace "$(cat "${theme_override_file}")")"
+    if [[ -n "${theme_override}" ]]; then
+      theme_name="${theme_override}"
+    fi
+  fi
   if [[ -z "${icon_theme}" ]]; then
     icon_theme="$(read_ini_value "${gtk_settings}" "gtk-icon-theme-name")"
-  fi
-  if [[ -f "${icon_override_file}" ]]; then
-    icon_override="$(trim_whitespace "$(cat "${icon_override_file}")")"
-    if [[ -n "${icon_override}" ]] && [[ -f "${HOME}/.local/share/icons/${icon_override}/index.theme" ]]; then
-      icon_theme="${icon_override}"
-    fi
   fi
   if [[ -z "${font_name}" ]]; then
     font_name="$(read_ini_value "${gtk_settings}" "gtk-font-name")"

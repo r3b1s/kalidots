@@ -14,8 +14,6 @@ source "${BOOTSTRAP_ROOT}/lib/users.sh"
 
 THEME_POLICY_FILE="${BOOTSTRAP_ROOT}/files/packages/theme-policy.env"
 PINK_ROT_WALLPAPER_URL="https://raw.githubusercontent.com/r3b1s/media-assets/main/backgrounds/malenia.jpg"
-PINK_ROT_ICON_THEME_ARCHIVE="${BOOTSTRAP_ROOT}/../Breeze-Chameleon-Dark.tar.xz"
-PINK_ROT_ICON_THEME_NAME="Breeze Chameleon Dark"
 
 firefox_profile_paths() {
   local target_home="$1"
@@ -136,41 +134,18 @@ install_pink_rot_wallpaper() {
   fi
 }
 
-install_pink_rot_icon_theme() {
+configure_pink_rot_gtk_theme_override() {
   local target_home="$1"
-  local icons_dir="${target_home}/.local/share/icons"
   local marker_dir="${target_home}/.config/kalidots"
-  local marker_file="${marker_dir}/icon-theme.override"
-  local tmp_dir
-  local extracted_dir
+  local theme_override_file="${marker_dir}/gtk-theme.override"
+  local icon_override_file="${marker_dir}/icon-theme.override"
 
-  install -d -m 755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${icons_dir}"
   install -d -m 755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${marker_dir}"
-
-  if [[ -f "${PINK_ROT_ICON_THEME_ARCHIVE}" ]]; then
-    tmp_dir="$(mktemp -d)"
-    if ! tar --warning=no-unknown-keyword -xf "${PINK_ROT_ICON_THEME_ARCHIVE}" -C "${tmp_dir}" 2>/dev/null; then
-      tar -xf "${PINK_ROT_ICON_THEME_ARCHIVE}" -C "${tmp_dir}" 2>/dev/null || true
-    fi
-    extracted_dir="${tmp_dir}/${PINK_ROT_ICON_THEME_NAME}"
-
-    if [[ -f "${extracted_dir}/index.theme" ]]; then
-      rm -rf "${icons_dir}/${PINK_ROT_ICON_THEME_NAME}"
-      cp -a "${extracted_dir}" "${icons_dir}/${PINK_ROT_ICON_THEME_NAME}"
-      chown -R "${TARGET_USER}:${TARGET_USER}" "${icons_dir}/${PINK_ROT_ICON_THEME_NAME}"
-      printf '%s\n' "${PINK_ROT_ICON_THEME_NAME}" > "${marker_file}"
-      chown "${TARGET_USER}:${TARGET_USER}" "${marker_file}"
-      chmod 644 "${marker_file}"
-    else
-      log_warn "Pink-rot icon theme archive missing index.theme; keeping current icon theme defaults"
-      rm -f "${marker_file}"
-    fi
-
-    rm -rf "${tmp_dir}"
-  else
-    log_warn "Pink-rot icon theme archive not found at ${PINK_ROT_ICON_THEME_ARCHIVE}; keeping current icon theme defaults"
-    rm -f "${marker_file}"
-  fi
+  printf '%s\n' "Arc-Dark" > "${theme_override_file}"
+  chown "${TARGET_USER}:${TARGET_USER}" "${theme_override_file}"
+  chmod 644 "${theme_override_file}"
+  rm -f "${icon_override_file}"
+  rm -rf "${target_home}/.local/share/icons/Breeze Chameleon Dark"
 }
 
 stage_apply() {
@@ -220,7 +195,7 @@ stage_apply() {
   install_user_dir ".config/gtk-4.0"
   install_user_dir ".config/xsettingsd"
   install_user_dir ".config/kalidots"
-  install_pink_rot_icon_theme "${target_home}"
+  configure_pink_rot_gtk_theme_override "${target_home}"
   if [[ -x "${target_home}/.config/i3/scripts/theme-sync.sh" ]]; then
     runuser -u "${TARGET_USER}" -- env HOME="${target_home}" "${target_home}/.config/i3/scripts/theme-sync.sh"
   fi
@@ -273,16 +248,7 @@ stage_verify() {
   [[ -f "${target_home}/.config/gtk-3.0/settings.ini" ]] || { log_error "GTK 3 settings not deployed"; return 1; }
   [[ -f "${target_home}/.config/gtk-4.0/settings.ini" ]] || { log_error "GTK 4 settings not deployed"; return 1; }
   [[ -f "${target_home}/.config/xsettingsd/xsettingsd.conf" ]] || { log_error "xsettingsd config not deployed"; return 1; }
-  if [[ -f "${PINK_ROT_ICON_THEME_ARCHIVE}" ]]; then
-    [[ -f "${target_home}/.local/share/icons/${PINK_ROT_ICON_THEME_NAME}/index.theme" ]] || {
-      log_error "Pink-rot icon theme not installed"
-      return 1
-    }
-    grep -q "gtk-icon-theme-name=${PINK_ROT_ICON_THEME_NAME}" "${target_home}/.config/gtk-3.0/settings.ini" || {
-      log_error "GTK icon theme not switched to ${PINK_ROT_ICON_THEME_NAME}"
-      return 1
-    }
-  fi
+  grep -q "gtk-theme-name=Arc-Dark" "${target_home}/.config/gtk-3.0/settings.ini" || { log_error "GTK theme not switched to Arc-Dark"; return 1; }
   [[ -s "${target_home}/.wallpaper" ]] || { log_error "Wallpaper not downloaded to ${target_home}/.wallpaper"; return 1; }
 
   if [[ -d "${target_home}/.config/nvim" ]]; then
