@@ -1,0 +1,16 @@
+{
+  "showLineNumber": true,
+  "vimMode": true,
+  "alwaysUpdateLinks": true,
+  "newLinkFormat": "shortest",
+  "showUnsupportedFiles": true,
+  "attachmentFolderPath": "docs/attachments",
+  "userIgnoreFilters": [
+    "attachments/"
+  ],
+  "trashOption": "system",
+  "promptDelete": true,
+  "newFileLocation": "root",
+  "newFileFolderPath": "/",
+  "openBehavior": ""
+}
