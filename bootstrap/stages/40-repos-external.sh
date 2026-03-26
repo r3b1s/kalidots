@@ -68,6 +68,8 @@ setup_mise_globals() {
   log_info "Installing global runtimes via mise for ${TARGET_USER}"
   run_in_target_home "${target_home}" env "${mise_env}" mise use --global node@lts
   run_in_target_home "${target_home}" env "${mise_env}" mise use --global python@latest
+  log_info "Configuring mise to prefer precompiled Ruby for ${TARGET_USER}"
+  run_in_target_home "${target_home}" env "${mise_env}" mise settings set ruby.compile false
   run_in_target_home "${target_home}" env "${mise_env}" mise use --global ruby@latest
 }
 
