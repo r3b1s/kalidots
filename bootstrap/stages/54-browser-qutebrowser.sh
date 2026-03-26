@@ -33,17 +33,29 @@ ensure_mise_python_available() {
   fi
 }
 
+get_mise_python_scripts_dir() {
+  local target_home="$1"
+  local mise_shims="${target_home}/.local/share/mise/shims"
+  local user_path="${mise_shims}:${target_home}/.local/bin:${PATH}"
+
+  run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
+    bash -c 'cd "$HOME" && python -c "import sysconfig; print(sysconfig.get_path(\"scripts\"))"'
+}
+
 stage_apply() {
   load_or_prompt_target_user >/dev/null
 
   local target_home
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
 
-  local user_qutebrowser_bin="${target_home}/.local/bin/qutebrowser"
   local mise_shims="${target_home}/.local/share/mise/shims"
   local user_path="${mise_shims}:${target_home}/.local/bin:${PATH}"
+  local python_scripts_dir
+  local user_qutebrowser_bin
 
   ensure_mise_python_available "${target_home}"
+  python_scripts_dir="$(get_mise_python_scripts_dir "${target_home}")"
+  user_qutebrowser_bin="${python_scripts_dir}/qutebrowser"
 
   # Install qutebrowser + dependencies via mise-managed pip
   log_info "Installing qutebrowser via mise-managed python for ${TARGET_USER}"
@@ -81,14 +93,16 @@ stage_verify() {
 
   local target_home
   local mise_shims
+  local python_scripts_dir
   local user_qutebrowser_bin
   local user_path
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
   mise_shims="${target_home}/.local/share/mise/shims"
-  user_qutebrowser_bin="${target_home}/.local/bin/qutebrowser"
   user_path="${mise_shims}:${target_home}/.local/bin:${PATH}"
 
   ensure_mise_python_available "${target_home}"
+  python_scripts_dir="$(get_mise_python_scripts_dir "${target_home}")"
+  user_qutebrowser_bin="${python_scripts_dir}/qutebrowser"
 
   [[ -x /usr/local/bin/qutebrowser ]] || { log_error "qutebrowser wrapper not installed"; return 1; }
   [[ -f /usr/share/applications/qutebrowser.desktop ]] || { log_error "qutebrowser .desktop file missing"; return 1; }
