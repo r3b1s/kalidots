@@ -43,6 +43,16 @@ ensure_bootstrap_deps() {
 main() {
   require_root
   ensure_bootstrap_deps
+
+  # Pink-rot gum theming for bootstrap session (not persisted to user shell)
+  export GUM_INPUT_CURSOR_FOREGROUND="#d40d40"
+  export GUM_INPUT_PROMPT_FOREGROUND="#f17e97"
+  export GUM_CHOOSE_CURSOR_FOREGROUND="#d40d40"
+  export GUM_CHOOSE_SELECTED_FOREGROUND="#f17e97"
+  export GUM_CONFIRM_SELECTED_FOREGROUND="#050007"
+  export GUM_CONFIRM_SELECTED_BACKGROUND="#d40d40"
+  export GUM_CONFIRM_UNSELECTED_FOREGROUND="#a85869"
+
   parse_cli_args "$@"
 
   local cleanup_only_requested=false

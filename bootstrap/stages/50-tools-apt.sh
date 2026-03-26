@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+
+# shellcheck disable=SC2034
+stage_id="tools-apt"
+stage_description="Install security tooling apt packages with Kali-first source policy"
+stage_profiles=("tools")
+
+TOOLS_POLICY_FILE="${BOOTSTRAP_ROOT}/files/packages/tools-policy.env"
+
+# shellcheck disable=SC1091
+# shellcheck source=../lib/packages.sh
+source "${BOOTSTRAP_ROOT}/lib/packages.sh"
+
+readonly MANIFEST_DIR="${HOME}/.config/kalidots"
+readonly MANIFEST_FILE="${MANIFEST_DIR}/update-manifest.json"
+
+register_in_manifest() {
+  local name="$1"
+  local source="$2"
+  local method="$3"
+  local binary_path="$4"
+  local version="$5"
+
+  [[ -f "${MANIFEST_FILE}" ]] || return 0
+
+  local tmp
+  tmp="$(mktemp)"
+  jq --arg name "${name}" --arg source "${source}" --arg method "${method}" \
+     --arg path "${binary_path}" --arg ver "${version}" \
+    '(.tools // []) as $tools |
+     if ($tools | map(.name) | index($name)) then
+       .tools |= map(if .name == $name then .current_version = $ver else . end)
+     else
+       .tools += [{"name": $name, "source": $source, "install_method": $method, "binary_path": $path, "current_version": $ver}]
+     end' "${MANIFEST_FILE}" > "${tmp}" && mv "${tmp}" "${MANIFEST_FILE}"
+}
+
+install_reconftw() {
+  if command -v podman >/dev/null 2>&1; then
+    log_info "Pulling reconftw container image"
+    podman pull docker.io/six2dez/reconftw:main || log_warn "reconftw image pull failed"
+
+    cat > /usr/local/bin/reconftw <<'WRAPPER'
+#!/usr/bin/env bash
+exec podman run --rm -it -v "$(pwd):/reconftw/Recon" docker.io/six2dez/reconftw:main "$@"
+WRAPPER
+    chmod 755 /usr/local/bin/reconftw
+  else
+    log_warn "podman not available; skipping reconftw container install"
+  fi
+}
+
+install_opengrep() {
+  if [[ -x /usr/local/bin/opengrep ]]; then
+    log_info "opengrep already installed"
+    return 0
+  fi
+
+  log_info "Installing opengrep from GitHub releases"
+  local api_url="https://api.github.com/repos/opengrep/opengrep/releases/latest"
+  local release_json download_url version tmp_file
+
+  release_json="$(curl -fSs "${api_url}")" || { log_warn "Failed to query opengrep releases"; return 0; }
+  version="$(printf '%s' "${release_json}" | jq -r '.tag_name')"
+  download_url="$(printf '%s' "${release_json}" | jq -r '.assets[] | select(.name | test("linux.*amd64|linux.*x86_64"; "i")) | .browser_download_url' | head -1)"
+
+  if [[ -z "${download_url}" ]]; then
+    log_warn "No opengrep Linux binary found in latest release"
+    return 0
+  fi
+
+  tmp_file="$(mktemp)"
+  curl -fSL -o "${tmp_file}" "${download_url}" || { rm -f "${tmp_file}"; log_warn "opengrep download failed"; return 0; }
+  install -m 755 "${tmp_file}" /usr/local/bin/opengrep
+  rm -f "${tmp_file}"
+
+  register_in_manifest "opengrep" "github:opengrep/opengrep" "github_binary" "/usr/local/bin/opengrep" "${version}"
+}
+
+decompress_rockyou() {
+  local rockyou_gz="/usr/share/wordlists/rockyou.txt.gz"
+  local rockyou="/usr/share/wordlists/rockyou.txt"
+
+  if [[ -f "${rockyou}" ]]; then
+    log_info "rockyou.txt already decompressed"
+    return 0
+  fi
+
+  if [[ -f "${rockyou_gz}" ]]; then
+    log_info "Decompressing rockyou.txt.gz"
+    gunzip -k "${rockyou_gz}"
+  fi
+}
+
+stage_apply() {
+  PACKAGE_POLICY_FILE="${TOOLS_POLICY_FILE}"
+  load_package_policy
+
+  ensure_apt_packages "${BOOTSTRAP_ROOT}/files/packages/tools-apt.txt"
+
+  # Post-apt installs
+  install_reconftw
+  install_opengrep
+  decompress_rockyou
+}
+
+stage_verify() {
+  PACKAGE_POLICY_FILE="${TOOLS_POLICY_FILE}"
+  load_package_policy
+
+  command -v nmap >/dev/null 2>&1 || { log_error "nmap not found"; return 1; }
+  command -v gobuster >/dev/null 2>&1 || { log_error "gobuster not found"; return 1; }
+  command -v john >/dev/null 2>&1 || { log_error "john not found"; return 1; }
+  command -v go >/dev/null 2>&1 || { log_error "go not found"; return 1; }
+  command -v rustup >/dev/null 2>&1 || { log_error "rustup not found"; return 1; }
+
+  log_info "tools-apt stage verified"
+  return 0
+}

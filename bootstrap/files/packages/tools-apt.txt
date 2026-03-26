@@ -53,16 +53,17 @@ foremost
 steghide
 exiftool
 
+# --- Scanning (extended) ---
+autorecon
+nuclei
+
 # --- Utilities ---
 wget
+rofimoji
 
 # --- Language Runtimes and Build Tools ---
 golang
-pipx
-python3-pip
-python3-venv
-ruby
-ruby-dev
+# python, ruby, and node are managed by mise (stage 40-repos-external)
 rustup
 build-essential
 unzip

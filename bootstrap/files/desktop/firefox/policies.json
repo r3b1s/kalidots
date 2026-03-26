@@ -1,5 +1,13 @@
 {
   "policies": {
+    "SearchEngines": {
+      "Default": "Brave Search",
+      "Add": [{
+        "Name": "Brave Search",
+        "URLTemplate": "https://search.brave.com/search?q={searchTerms}",
+        "Alias": "brave"
+      }]
+    },
     "DisableTelemetry": true,
     "DisableFirefoxStudies": true,
     "DisablePocket": true,

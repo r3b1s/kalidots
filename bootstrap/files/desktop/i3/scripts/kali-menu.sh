@@ -5,14 +5,16 @@ readonly SCRIPT_DIR="${HOME}/.config/i3/scripts"
 readonly MODE="${1:-main}"
 readonly -a MAIN_MENU_LABELS=(
   "Tools"
-  "Paths"
+  "Paths (Term)"
+  "Paths (File Explorer)"
   "Update"
   "Screen Recording"
   "Screenshot"
 )
 readonly -a MAIN_MENU_ICONS=(
   "applications-security"
-  "folder"
+  "utilities-terminal"
+  "system-file-manager"
   "system-software-update"
   "camera-video"
   "applets-screenshooter"
@@ -344,93 +346,37 @@ open_path_target() {
   esac
 }
 
-path_section_entries() {
-  local section="$1"
-
-  case "${section}" in
-    Core)
-      printf '%s\t%s\t%s\n' \
-        "downloads" "folder-download" "${HOME}/downloads" \
-        "notes" "folder-documents" "${HOME}/notes" \
-        "engagements" "folder" "${HOME}/engagements"
-      ;;
-    Loot)
-      printf '%s\t%s\t%s\n' \
-        "loot" "folder-saved-search" "${HOME}/loot" \
-        "screenshots" "folder-pictures" "${HOME}/screenshots" \
-        "recordings" "folder-videos" "${HOME}/recordings" \
-        "reports" "folder-documents" "${HOME}/reports"
-      ;;
-    Infra)
-      printf '%s\t%s\t%s\n' \
-        "payloads" "folder-templates" "${HOME}/payloads" \
-        "staging (/tmp)" "folder-temp" "/tmp" \
-        "web root" "folder-remote" "/var/www/html" \
-        "tooling (/opt)" "folder" "/opt" \
-        "wordlists" "folder-download" "/usr/share/wordlists" \
-        "SecLists" "folder-download" "/usr/share/seclists" \
-        "nmap data" "folder" "/usr/share/nmap" \
-        "Metasploit" "folder" "/usr/share/metasploit-framework"
-      ;;
-  esac
+flat_path_entries() {
+  printf '%s\t%s\t%s\n' \
+    "/tmp" "folder-temp" "/tmp" \
+    "/var/www/html" "folder-remote" "/var/www/html" \
+    "/opt" "folder" "/opt" \
+    "/usr/share/wordlists" "folder-download" "/usr/share/wordlists" \
+    "/usr/share/seclists" "folder-download" "/usr/share/seclists" \
+    "/usr/share/nmap" "folder" "/usr/share/nmap" \
+    "/usr/share/metasploit-framework" "folder" "/usr/share/metasploit-framework" \
+    "/usr/share/exploitdb" "folder" "/usr/share/exploitdb" \
+    "/usr/share/webshells" "folder" "/usr/share/webshells"
 }
 
-show_path_section_menu() {
+show_flat_paths() {
   local mode="$1"
-  local -a labels=()
-  local -a icons=(
-    "folder"
-    "folder-saved-search"
-    "applications-system"
-  )
-  local -a sections=(
-    "Core"
-    "Loot"
-    "Infra"
-  )
   local -a path_rows=()
-  local -a path_labels=()
-  local -a path_icons=()
-  local -a path_values=()
-  local section_idx
-  local row
-  local label
-  local icon
-  local path
-  local path_idx
+  local -a labels=()
+  local -a icons=()
+  local -a values=()
+  local row label icon path idx
 
-  labels=("${sections[@]}")
-  section_idx="$(rofi_pick_index "Paths" labels icons)" || return 0
-
-  mapfile -t path_rows < <(path_section_entries "${sections[section_idx]}")
+  mapfile -t path_rows < <(flat_path_entries)
   for row in "${path_rows[@]}"; do
     IFS=$'\t' read -r label icon path <<<"${row}"
-    path_labels+=("${label}")
-    path_icons+=("${icon}")
-    path_values+=("${path}")
+    labels+=("${label}")
+    icons+=("${icon}")
+    values+=("${path}")
   done
 
-  path_idx="$(rofi_pick_index "${sections[section_idx]}" path_labels path_icons)" || return 0
-  open_path_target "${mode}" "${path_values[path_idx]}"
-}
-
-show_paths_menu() {
-  local -a labels=(
-    "Open in Terminal"
-    "Open in File Explorer"
-  )
-  local -a icons=(
-    "utilities-terminal"
-    "system-file-manager"
-  )
-  local idx
-
   idx="$(rofi_pick_index "Paths" labels icons)" || return 0
-
-  case "${labels[idx]}" in
-    "Open in Terminal") show_path_section_menu "terminal" ;;
-    "Open in File Explorer") show_path_section_menu "file-manager" ;;
-  esac
+  open_path_target "${mode}" "${values[idx]}"
 }
 
 show_screen_recording_menu() {
@@ -484,8 +430,9 @@ show_main_menu() {
 
   case "${MAIN_MENU_LABELS[idx]}" in
     "Tools") show_tools_menu ;;
-    "Paths") show_paths_menu ;;
-    "Update") setsid -f "${SCRIPT_DIR}/system-update.sh" >/dev/null 2>&1 || true ;;
+    "Paths (Term)") show_flat_paths "terminal" ;;
+    "Paths (File Explorer)") show_flat_paths "file-manager" ;;
+    "Update") setsid -f "${SCRIPT_DIR}/update-manager.sh" >/dev/null 2>&1 || true ;;
     "Screen Recording") show_screen_recording_menu ;;
     "Screenshot") show_screenshot_menu ;;
   esac
@@ -520,55 +467,15 @@ render_main_menu_script() {
   done
 }
 
-render_paths_action_menu_script() {
-  local -a labels=(
-    "Open in Terminal"
-    "Open in File Explorer"
-  )
-  local -a icons=(
-    "utilities-terminal"
-    "system-file-manager"
-  )
-  local i
-
-  rofi_script_header "Paths" "paths-action"
-  for i in "${!labels[@]}"; do
-    rofi_script_row "${labels[i]}" "${icons[i]}" "paths-action|${labels[i]}"
-  done
-}
-
-render_path_section_menu_script() {
+render_flat_paths_menu_script() {
   local mode="$1"
-  local -a sections=(
-    "Core"
-    "Loot"
-    "Infra"
-  )
-  local -a icons=(
-    "folder"
-    "folder-saved-search"
-    "applications-system"
-  )
-  local i
-
-  rofi_script_header "Paths" "paths-section|${mode}"
-  for i in "${!sections[@]}"; do
-    rofi_script_row "${sections[i]}" "${icons[i]}" "paths-section|${mode}|${sections[i]}"
-  done
-}
-
-render_path_entries_menu_script() {
-  local mode="$1"
-  local section="$2"
   local -a path_rows=()
-  local row
-  local label
-  local icon
-  local path
+  local row label icon path
 
-  rofi_script_header "${section}" "paths-entries|${mode}|${section}"
+  rofi_script_header "Paths" "flat-paths|${mode}"
+  rofi_script_row "← Back" "go-previous" "back|main"
 
-  mapfile -t path_rows < <(path_section_entries "${section}")
+  mapfile -t path_rows < <(flat_path_entries)
   for row in "${path_rows[@]}"; do
     IFS=$'\t' read -r label icon path <<<"${row}"
     rofi_script_row "${label}" "${icon}" "path-open|${mode}|${path}"
@@ -577,6 +484,7 @@ render_path_entries_menu_script() {
 
 render_screen_recording_menu_script() {
   rofi_script_header "Recording" "recording"
+  rofi_script_row "← Back" "go-previous" "back|main"
   rofi_script_row "Record Full Screen" "video-display" "recording|fullscreen"
   rofi_script_row "Record Selection" "video-x-generic" "recording|area"
   rofi_script_row "Record Selection To GIF" "image-gif" "recording|gif"
@@ -584,6 +492,7 @@ render_screen_recording_menu_script() {
 
 render_screenshot_menu_script() {
   rofi_script_header "Screenshot" "screenshot"
+  rofi_script_row "← Back" "go-previous" "back|main"
   rofi_script_row "Fullscreen" "applets-screenshooter" "screenshot|fullscreen"
   rofi_script_row "Screenshot Selection" "selection-rectangular" "screenshot|selection"
   rofi_script_row "Screenshot Selection To Clipboard" "edit-copy" "screenshot|clipboard"
@@ -599,6 +508,7 @@ render_tools_menu_script() {
 
   menu_file="$(find_kali_menu_file)" || exit 0
   rofi_script_header "Tools" "tools-top"
+  rofi_script_row "← Back" "go-previous" "back|main"
 
   mapfile -t top_rows < <(parse_top_categories "${menu_file}")
   for row in "${top_rows[@]}"; do
@@ -693,20 +603,18 @@ handle_rofi_script_selection() {
     main)
       case "${arg1}" in
         "Tools") render_tools_menu_script ;;
-        "Paths") render_paths_action_menu_script ;;
-        "Update") setsid -f "${SCRIPT_DIR}/system-update.sh" >/dev/null 2>&1 || true ;;
+        "Paths (Term)") render_flat_paths_menu_script "terminal" ;;
+        "Paths (File Explorer)") render_flat_paths_menu_script "file-manager" ;;
+        "Update") setsid -f "${SCRIPT_DIR}/update-manager.sh" >/dev/null 2>&1 || true ;;
         "Screen Recording") render_screen_recording_menu_script ;;
         "Screenshot") render_screenshot_menu_script ;;
       esac
       ;;
-    paths-action)
-      case "${arg1}" in
-        "Open in Terminal") render_path_section_menu_script "terminal" ;;
-        "Open in File Explorer") render_path_section_menu_script "file-manager" ;;
-      esac
+    back)
+      render_main_menu_script
       ;;
-    paths-section)
-      render_path_entries_menu_script "${arg1}" "${arg2}"
+    flat-paths)
+      # Data stored as flat-paths|mode, selection handled via path-open info
       ;;
     path-open)
       open_path_target "${arg1}" "${arg2}"
@@ -758,7 +666,8 @@ fi
 case "${MODE}" in
   main) launch_rofi_script_mode ;;
   tools) show_tools_menu ;;
-  paths) show_paths_menu ;;
+  paths-term) show_flat_paths "terminal" ;;
+  paths-files) show_flat_paths "file-manager" ;;
   recording) show_screen_recording_menu ;;
   screenshot) show_screenshot_menu ;;
   *) exit 1 ;;

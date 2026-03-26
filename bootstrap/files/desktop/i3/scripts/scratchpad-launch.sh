@@ -27,7 +27,9 @@ for _ in $(seq 1 50); do
   AFTER="$(i3-msg -t get_tree | jq -r '.. | .id? // empty' | sort)"
   NEW_ID="$(comm -13 <(echo "${BEFORE}") <(echo "${AFTER}") | tail -1)"
   if [[ -n "${NEW_ID}" ]]; then
-    i3-msg "[con_id=${NEW_ID}] mark ${MARK}; [con_mark=\"${MARK}\"] move scratchpad; [con_mark=\"${MARK}\"] scratchpad show" 2>/dev/null && exit 0
+    i3-msg "[con_id=${NEW_ID}] mark ${MARK}; [con_mark=\"${MARK}\"] move scratchpad; [con_mark=\"${MARK}\"] scratchpad show" 2>/dev/null
+    i3-msg "[con_mark=\"${MARK}\"] resize set 50 ppt 100 ppt" 2>/dev/null
+    exit 0
   fi
 done
 

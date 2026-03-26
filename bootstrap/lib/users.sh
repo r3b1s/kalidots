@@ -73,6 +73,7 @@ prompt_target_username() {
 
 prompt_target_password() {
   local password=""
+  local confirm=""
 
   while true; do
     if ! password="$(prompt_with_fallback "Primary password" "primary password" "yes")"; then
@@ -80,6 +81,14 @@ prompt_target_password() {
     fi
     if [[ -z "${password}" ]]; then
       log_warn "Primary password cannot be blank."
+      continue
+    fi
+
+    if ! confirm="$(prompt_with_fallback "Confirm password" "confirm password" "yes")"; then
+      return 130
+    fi
+    if [[ "${password}" != "${confirm}" ]]; then
+      log_warn "Passwords do not match."
       continue
     fi
 

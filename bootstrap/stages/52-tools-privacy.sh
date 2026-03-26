@@ -109,17 +109,21 @@ stage_verify() {
   grep -q '^TELEMETRY_BUNDLER=' "${registry_file}" || { log_error "Telemetry registry missing bundler entry"; return 1; }
   grep -q '^TELEMETRY_PAYLOADSALLTHETHINGS=' "${registry_file}" || { log_error "Telemetry registry missing PayloadsAllTheThings entry"; return 1; }
 
-  while IFS= read -r package_name || [[ -n "${package_name}" ]]; do
-    package_name="${package_name#"${package_name%%[![:space:]]*}"}"
-    package_name="${package_name%"${package_name##*[![:space:]]}"}"
-    [[ -n "${package_name}" && "${package_name}" != \#* ]] || continue
+  local apt_file
+  for apt_file in "${BOOTSTRAP_ROOT}"/files/packages/*-apt.txt; do
+    [[ -f "${apt_file}" ]] || continue
+    while IFS= read -r package_name || [[ -n "${package_name}" ]]; do
+      package_name="${package_name#"${package_name%%[![:space:]]*}"}"
+      package_name="${package_name%"${package_name##*[![:space:]]}"}"
+      [[ -n "${package_name}" && "${package_name}" != \#* ]] || continue
 
-    telemetry_key="$(printf '%s' "${package_name}" | tr '[:lower:]-' '[:upper:]_')"
-    if ! grep -q "^TELEMETRY_${telemetry_key}=" "${registry_file}"; then
-      log_error "Telemetry registry missing package entry for ${package_name}"
-      missing=1
-    fi
-  done < "${BOOTSTRAP_ROOT}/files/packages/tools-apt.txt"
+      telemetry_key="$(printf '%s' "${package_name}" | tr '[:lower:]-' '[:upper:]_')"
+      if ! grep -q "^TELEMETRY_${telemetry_key}=" "${registry_file}"; then
+        log_error "Telemetry registry missing entry for ${package_name} (from $(basename "${apt_file}"))"
+        missing=1
+      fi
+    done < "${apt_file}"
+  done
 
   [[ "${missing}" -eq 0 ]] || return 1
 

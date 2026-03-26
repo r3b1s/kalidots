@@ -21,12 +21,12 @@ flameshot
 slop
 ffmpeg
 imagemagick
-# Clipboard (clipmenu built from source, see 30-desktop-i3.sh)
+# Clipboard (clipmenu built from source, see 25-desktop-i3.sh)
 xsel
 build-essential
 libx11-dev
 libxfixes-dev
-# i3status-rs build deps (built from source, see 31-desktop-apps.sh)
+# i3status-rs build deps (built from source, see 26-desktop-apps.sh)
 libssl-dev
 libsensors-dev
 libpulse-dev
@@ -52,12 +52,11 @@ network-manager-gnome
 pavucontrol
 blueman
 # Browsers
-qutebrowser
 firefox-esr
 # Remote desktop
 remmina
-# Email
-thunderbird
+# Terminal multiplexer
+tmux
 # XDG autostart
 dex
 # VM guest agents

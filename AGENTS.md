@@ -21,7 +21,7 @@ tests/bootstrap/lib/        Unit tests for library functions.
 
 ### Profiles and stages
 
-There are eight **profiles**: `base`, `desktop`, `keyboard`, `tools`, `ctf`, `secrets`, `llm`, `theme`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order. The `keyboard` profile is separate from `desktop` — it covers system-level/low-level keyboard configuration (e.g. Kanata), not desktop-environment-specific keybindings. The `ctf` profile is for platform-specific CTF tooling that is not part of the general `tools` profile. The `theme` profile is independent from `desktop` — it overlays color schemes on top of already-deployed desktop configs.
+There are ten **profiles**: `base`, `desktop`, `keyboard`, `apps`, `tools`, `ctf`, `secrets`, `llm`, `theme`, `speech`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order. The `keyboard` profile is separate from `desktop` — it covers system-level/low-level keyboard configuration (e.g. Kanata), not desktop-environment-specific keybindings. The `ctf` profile is for platform-specific CTF tooling that is not part of the general `tools` profile. The `theme` profile is independent from `desktop` — it overlays color schemes on top of already-deployed desktop configs.
 
 Stage `21-bootstrap-user-cleanup` has no profile — it only runs when explicitly requested via `--stage bootstrap-user-cleanup`.
 
@@ -99,7 +99,7 @@ These are set by `cli.sh` and used throughout:
 
 ### Keyboard vs Desktop profile boundary
 
-The `keyboard` profile covers system-level/low-level keyboard configuration (Kanata, key remapping, input device setup). Desktop-environment-specific keybindings (i3 bindsym, Hyprland binds) belong in `desktop`. When adding new keyboard-related stages, use the `keyboard` profile and the 35-39 numbering range.
+The `keyboard` profile covers system-level/low-level keyboard configuration (Kanata, key remapping, input device setup). Desktop-environment-specific keybindings (i3 bindsym, Hyprland binds) belong in `desktop`. When adding new keyboard-related stages, use the `keyboard` profile and the 29 numbering range. The `apps` profile covers optional application installs (note-taking, communication). The `speech` profile covers speech-to-text tooling.
 
 ### Theme profile
 
@@ -143,6 +143,22 @@ Some configs use placeholder substitution (e.g., `__TARGET_HOME__` replaced with
 
 Shell initialization uses a drop-in directory pattern. Stages append a sourcing block to `~/.bashrc` (idempotently checked with `grep`) and place individual scripts in `~/.bashrc.d/NN-name.sh`. The number prefix controls load order.
 
+### Update manifest pattern
+
+Tools installed from GitHub releases (AppImages, static binaries, .debs) register in `~/.config/kalidots/update-manifest.json`. Each entry has `name`, `source` (e.g., `github:owner/repo`), `install_method`, `binary_path`, and `current_version`. The update manager script queries GitHub API to detect outdated tools.
+
+### Podman container pattern
+
+Tools too complex to install natively (e.g., reconftw) use a podman container with a shell wrapper in `/usr/local/bin/`. The wrapper uses `exec podman run --rm -it -v "$(pwd):/<mount>" IMAGE "$@"`.
+
+### Direct binary install pattern
+
+GitHub-hosted binaries are downloaded from releases, optionally checksum-verified, and placed directly in `/usr/local/bin/`. The version is registered in the update manifest. Examples: opengrep, tailscale.
+
+### PyPI install via mise pattern
+
+Tools that benefit from pip install (e.g., qutebrowser) use mise-managed Python to avoid polluting the system Python. A system wrapper in `/usr/local/bin/` sets PATH to include mise shims. A `.desktop` file is created for desktop integration.
+
 ## Tests
 
 Tests live in `tests/bootstrap/lib/` and are plain bash scripts. Run them directly:
@@ -164,5 +180,33 @@ Test conventions:
 - **State file is the source of truth for resumability**: Don't manually edit `.bootstrap/state.json` unless debugging. The runner uses it to skip verified stages.
 - **LLM manifest contract**: The `llm_assert_manifest_contract` function enforces that all three LLM tools (codex, claude, gemini) remain `manual` method with `not-installed-by-bootstrap`. Do not change this.
 - **No secrets in state**: API keys, passwords, and credentials must never be written to `state.json` or committed. The LLM and secrets stages deploy templates and documentation only.
-- **Telemetry registry**: Every tool in `tools-apt.txt` and `desktop-apt.txt` must have a corresponding entry in `privacy/telemetry-registry.env`. Stage `42-tools-privacy` enforces this.
+- **Telemetry registry**: Every tool in all `*-apt.txt` manifests must have a corresponding entry in `privacy/telemetry-registry.env`. Stage `52-tools-privacy` enforces this. See the "Telemetry tracking" section below for packages with active countermeasures.
 - **System groups**: The `uinput` group must have GID < 1000 (system group) for udev rules to work. Use `groupadd --system`.
+
+## Telemetry tracking
+
+Every installed tool must have a telemetry posture documented in `bootstrap/files/privacy/telemetry-registry.env`. The table below tracks packages that **actively collect telemetry** and the countermeasures applied. When adding new tools, always check for telemetry and update both the registry and this table.
+
+### Packages with active countermeasures
+
+| Package | What it collects | Countermeasure | Where applied |
+|---------|-----------------|----------------|---------------|
+| **Go** | Usage and crash reporting | `go telemetry off` command | Stage `52-tools-privacy.sh` runs it for target user |
+| **mise** | Anonymous download stats sent to `mise-versions.jdx.dev` after tool installs | `MISE_USE_VERSIONS_HOST=0` env var | `bashrc.d/50-mise.sh` drop-in; also passed during stage `40-repos-external.sh` install commands |
+| **Firefox ESR** | Mozilla telemetry (usage, crash, technical data) | Disabled via enterprise policy | Registry entry: `mozilla_telemetry_disabled_via_enterprise_policy` |
+
+### Packages with unknown/unresolved telemetry posture
+
+These are flagged in the registry and logged as warnings by stage `52-tools-privacy`:
+
+| Package | Concern |
+|---------|---------|
+| **Metasploit** | Communicates with Rapid7 update servers |
+| **Burp Suite** | Proprietary update checks |
+| **ZAProxy** | Update check posture needs review |
+| **NetExec** | Posture needs review |
+| **BloodHound** | Electron app update posture needs review |
+| **Neo4j** | Server usage metrics posture needs review |
+| **Proxychains4** | Posture not explicitly documented |
+| **Remmina** | Posture needs review |
+| **Thunderbird** | Mozilla update/telemetry posture needs review |

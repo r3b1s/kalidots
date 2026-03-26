@@ -2,7 +2,7 @@
 
 # shellcheck disable=SC2034
 stage_id="desktop-apps"
-stage_description="Configure Rofi, Alacritty, zsh ergonomics, Firefox policy, and status bar"
+stage_description="Configure Rofi, Alacritty, zsh ergonomics, tmux, and status bar"
 stage_profiles=("desktop")
 
 # shellcheck disable=SC1091
@@ -60,70 +60,6 @@ EOF
   for dir in "${legacy_dirs[@]}"; do
     rmdir "${target_home}/${dir}" 2>/dev/null || true
   done
-}
-
-ensure_firefox_operator_profile() {
-  local target_home="$1"
-  local firefox_root="${target_home}/.mozilla/firefox"
-  local profiles_ini="${firefox_root}/profiles.ini"
-  local tmp_file
-  local next_index
-
-  install_user_dir ".mozilla"
-  install_user_dir ".mozilla/firefox"
-  install_user_dir ".mozilla/firefox/operator"
-
-  if [[ ! -f "${profiles_ini}" ]]; then
-    tmp_file="$(mktemp)"
-    cat > "${tmp_file}" <<'EOF'
-[General]
-StartWithLastProfile=1
-Version=2
-EOF
-    install_user_file "${tmp_file}" ".mozilla/firefox/profiles.ini"
-    rm -f "${tmp_file}"
-  fi
-
-  if grep -q '^Name=operator$' "${profiles_ini}" 2>/dev/null; then
-    return 0
-  fi
-
-  next_index="$(
-    awk -F'[][]' '
-      /^\[Profile[0-9]+\]$/ {
-        gsub(/^Profile/, "", $2)
-        if ($2 + 1 > max) {
-          max = $2 + 1
-        }
-      }
-      END { print max + 0 }
-    ' "${profiles_ini}"
-  )"
-
-  cat >> "${profiles_ini}" <<EOF
-
-[Profile${next_index}]
-Name=operator
-IsRelative=1
-Path=operator
-Default=0
-EOF
-  chown "${TARGET_USER}:${TARGET_USER}" "${profiles_ini}"
-}
-
-install_firefox_policy() {
-  install -d -m 755 /etc/firefox/policies
-  install -m 644 "${BOOTSTRAP_ROOT}/files/desktop/firefox/policies.json" /etc/firefox/policies/policies.json
-
-  if [[ -d /usr/lib/firefox-esr ]]; then
-    install -d -m 755 /usr/lib/firefox-esr/distribution
-    install -m 644 "${BOOTSTRAP_ROOT}/files/desktop/firefox/policies.json" /usr/lib/firefox-esr/distribution/policies.json
-  fi
-
-  if [[ -d /usr/lib/firefox ]]; then
-    install -d -m 755 /usr/lib/firefox/distribution
-    install -m 644 "${BOOTSTRAP_ROOT}/files/desktop/firefox/policies.json" /usr/lib/firefox/distribution/policies.json
-  fi
 }
 
 install_i3status_rs() {
@@ -270,8 +206,6 @@ stage_apply() {
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/rofi/config.rasi" ".config/rofi/config.rasi"
 
   configure_operator_home_dirs "${target_home}"
-  ensure_firefox_operator_profile "${target_home}"
-  install_firefox_policy
 
   # Install Nerd Font for Alacritty
   install_nerd_font
@@ -280,9 +214,9 @@ stage_apply() {
   install_user_dir ".config/alacritty"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/alacritty/alacritty.toml" ".config/alacritty/alacritty.toml"
 
-  # Deploy qutebrowser config
-  install_user_dir ".config/qutebrowser"
-  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/qutebrowser/config.py" ".config/qutebrowser/config.py"
+  # Deploy tmux config
+  install_user_dir ".config/tmux"
+  install_user_file "${BOOTSTRAP_ROOT}/files/desktop/tmux/tmux.conf" ".config/tmux/tmux.conf"
 
   # Deploy shell ergonomics
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/bashrc" ".bashrc"
@@ -321,6 +255,21 @@ stage_apply() {
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/i3status/config" ".config/i3status/config"
 
   upgrade_i3_bar_config "${target_home}"
+
+  # Deploy update manager and manifest template
+  install_user_dir ".config/kalidots"
+  if [[ ! -f "${target_home}/.config/kalidots/update-manifest.json" ]]; then
+    local manifest_tmp
+    manifest_tmp="$(mktemp)"
+    cat > "${manifest_tmp}" <<'MANIFEST'
+{
+  "schema_version": "1",
+  "tools": []
+}
+MANIFEST
+    install_user_file "${manifest_tmp}" ".config/kalidots/update-manifest.json"
+    rm -f "${manifest_tmp}"
+  fi
 }
 
 stage_verify() {
@@ -342,9 +291,7 @@ stage_verify() {
   [[ -f "${target_home}/.config/user-dirs.dirs" ]] || { log_error "XDG user dirs not configured"; return 1; }
   grep -q 'XDG_DOWNLOAD_DIR="\$HOME/downloads"' "${target_home}/.config/user-dirs.dirs" || { log_error "downloads XDG mapping missing"; return 1; }
   [[ -f "${target_home}/.config/alacritty/alacritty.toml" ]] || { log_error "Alacritty config not deployed"; return 1; }
-  [[ -f "${target_home}/.config/qutebrowser/config.py" ]] || { log_error "qutebrowser config not deployed"; return 1; }
-  grep -q 'search.brave.com/search?q={}' "${target_home}/.config/qutebrowser/config.py" || { log_error "qutebrowser search engine config missing"; return 1; }
-  grep -q 'c.content.blocking.method = "both"' "${target_home}/.config/qutebrowser/config.py" || { log_error "qutebrowser blocking config missing"; return 1; }
+  [[ -f "${target_home}/.config/tmux/tmux.conf" ]] || { log_error "tmux config not deployed"; return 1; }
   [[ -f "${target_home}/.bashrc" ]] || { log_error ".bashrc not deployed"; return 1; }
   grep -q 'set -o vi' "${target_home}/.bashrc" || { log_error ".bashrc missing vi mode"; return 1; }
   [[ -f "${target_home}/.inputrc" ]] || { log_error "inputrc not deployed"; return 1; }
@@ -357,16 +304,7 @@ stage_verify() {
   [[ -f "${target_home}/.config/xsettingsd/xsettingsd.conf" ]] || { log_error "xsettingsd config not deployed"; return 1; }
   [[ ! -f "${target_home}/.bashrc.d/50-starship.sh" ]] || { log_error "Starship bash drop-in should be removed"; return 1; }
   [[ ! -f "${target_home}/.config/starship.toml" ]] || { log_error "Starship config should be removed"; return 1; }
-  [[ -d "${target_home}/.mozilla/firefox/operator" ]] || { log_error "Firefox operator profile directory not created"; return 1; }
-  [[ -f "${target_home}/.mozilla/firefox/profiles.ini" ]] || { log_error "Firefox profiles.ini missing"; return 1; }
-  grep -q '^Name=operator$' "${target_home}/.mozilla/firefox/profiles.ini" || { log_error "Firefox operator profile not registered"; return 1; }
-  [[ -f /etc/firefox/policies/policies.json ]] || { log_error "Firefox enterprise policy not installed"; return 1; }
-  grep -q '"DisableTelemetry": true' /etc/firefox/policies/policies.json || { log_error "Firefox telemetry policy missing"; return 1; }
-  grep -q '"DisableFirefoxStudies": true' /etc/firefox/policies/policies.json || { log_error "Firefox studies policy missing"; return 1; }
   command -v btop >/dev/null 2>&1 || { log_error "btop not found in PATH"; return 1; }
   [[ -f "${target_home}/.config/i3status/config" ]] || { log_error "i3status fallback config not deployed"; return 1; }
   command -v i3status-rs >/dev/null 2>&1 || { log_error "i3status-rs binary not found"; return 1; }
-  if [[ -d /usr/lib/firefox-esr ]]; then
-    [[ -f /usr/lib/firefox-esr/distribution/policies.json ]] || { log_error "Firefox ESR distribution policy missing"; return 1; }
-  fi
 }

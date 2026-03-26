@@ -20,6 +20,7 @@ font pango:JetBrainsMono Nerd Font 10
 # Settings
 focus_follows_mouse yes
 floating_modifier $mod
+workspace_auto_back_and_forth yes
 
 # ─── Core Actions ───────────────────────────────────────────────────────────────
 
@@ -147,6 +148,32 @@ bindsym $mod+Shift+Mod1+8 move container to workspace number $ws8
 bindsym $mod+Shift+Mod1+9 move container to workspace number $ws9
 bindsym $mod+Shift+Mod1+0 move container to workspace number $ws10
 
+# ─── Named Workspaces ─────────────────────────────────────────────────────────
+
+set $ws_notes "📝"
+set $ws_comms1 "comms1"
+set $ws_comms2 "comms2"
+set $ws_music "🎶"
+set $ws_term "⌨️"
+set $ws_pad1 "🗒️1"
+set $ws_pad2 "🗒️2"
+set $ws_pad3 "🗒️3"
+set $ws_pad4 "🗒️4"
+set $ws_pad5 "🗒️5"
+set $ws_pad6 "🗒️6"
+
+bindsym $mod+o workspace $ws_notes
+bindsym $mod+comma workspace $ws_comms1
+bindsym $mod+slash workspace $ws_comms2
+bindsym $mod+m workspace $ws_music
+bindsym $mod+t workspace $ws_term
+bindsym $mod+u workspace $ws_pad1
+bindsym $mod+period workspace $ws_pad2
+bindsym $mod+equal workspace $ws_pad3
+bindsym $mod+i workspace $ws_pad4
+bindsym $mod+y workspace $ws_pad5
+bindsym $mod+g workspace $ws_pad6
+
 # ─── Window Cycling ─────────────────────────────────────────────────────────────
 
 bindsym Mod1+Tab focus next
@@ -163,19 +190,12 @@ bindsym $mod+Ctrl+Mod1+Down move workspace to output down
 bindsym $mod+Ctrl+Mod1+Up move workspace to output up
 bindsym $mod+Ctrl+Mod1+Right move workspace to output right
 
-# ─── General-Purpose Scratchpads (mark-based) ──────────────────────────────────
-
-bindsym $mod+period [con_mark="sp1"] scratchpad show
-bindsym $mod+Shift+Ctrl+period mark sp1; move scratchpad
-bindsym $mod+u [con_mark="sp2"] scratchpad show
-bindsym $mod+Shift+Ctrl+u mark sp2; move scratchpad
-
 # ─── Quick Launchers ───────────────────────────────────────────────────────────
 
 bindsym $mod+p exec --no-startup-id $term -e btop
 bindsym $mod+a exec --no-startup-id $scripts/scratchpad-launch.sh sp-browser firefox-esr
 bindsym $mod+Shift+e exec --no-startup-id $scripts/scratchpad-launch.sh sp-email thunderbird
-bindsym $mod+t exec --no-startup-id $scripts/scratchpad-launch.sh sp-term "$term"
+bindsym $mod+Ctrl+t exec --no-startup-id $scripts/scratchpad-launch.sh sp-term "$term"
 bindsym $mod+Shift+p exec --no-startup-id $scripts/scratchpad-launch.sh sp-keepassxc "flatpak run org.keepassxc.KeePassXC"
 
 # ─── Kali Directory Shortcuts ──────────────────────────────────────────────────
@@ -194,7 +214,7 @@ bindsym $mod+Ctrl+0 exec --no-startup-id $term --working-directory /var/www/html
 
 bindsym $mod+Ctrl+Mod1+1 exec --no-startup-id thunar /usr/share
 bindsym $mod+Ctrl+Mod1+w exec --no-startup-id thunar /usr/share/wordlists
-bindsym $mod+Ctrl+Mod1+e exec --no-startup-id thunar /usr/share/seclists
+bindsym $mod+Ctrl+Mod1+e exec --no-startup-id $scripts/kali-menu.sh paths-files
 bindsym $mod+Ctrl+Mod1+2 exec --no-startup-id thunar /opt
 bindsym $mod+Ctrl+Mod1+3 exec --no-startup-id thunar /tmp
 bindsym $mod+Ctrl+Mod1+4 exec --no-startup-id thunar /usr/share/exploitdb
@@ -230,6 +250,11 @@ bindsym $mod+Shift+Ctrl+Mod1+v exec --no-startup-id $scripts/clipboard-clear.sh
 
 bindsym $mod+Ctrl+b exec --no-startup-id qutebrowser
 bindsym $mod+Ctrl+m exec --no-startup-id remmina
+bindsym $mod+Shift+o exec --no-startup-id /opt/obsidian/Obsidian.AppImage
+bindsym $mod+Ctrl+e exec --no-startup-id rofimoji
+bindsym $mod+Mod1+t exec --no-startup-id $term --working-directory /usr/share
+bindsym $mod+d exec --no-startup-id voxtype toggle
+bindsym $mod+Mod1+e exec --no-startup-id $scripts/kali-menu.sh paths-term
 
 # ─── System / Controls ─────────────────────────────────────────────────────────
 
@@ -295,6 +320,7 @@ exec --no-startup-id blueman-applet
 exec --no-startup-id xautolock -time 10 -locker i3lock
 exec --no-startup-id dex --autostart -e i3
 exec_always --no-startup-id autotiling
+exec_always --no-startup-id $scripts/workspace-auto-terminal.sh
 
 # ─── Bar ────────────────────────────────────────────────────────────────────────
 
@@ -307,8 +333,8 @@ bar {
 
 # ─── Gaps and Appearance ───────────────────────────────────────────────────────
 
-gaps inner 8
-gaps outer 2
+gaps inner 0
+gaps outer 0
 default_border pixel 2
 
 # Force border on windows that use CSD / no decorations

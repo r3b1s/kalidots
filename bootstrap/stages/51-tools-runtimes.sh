@@ -84,7 +84,7 @@ stage_apply() {
   install_user_dir ".local/share"
   install_user_dir ".local/share/go"
 
-  user_tool_path="${target_home}/.local/bin:${user_gopath}/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
+  user_tool_path="${target_home}/.local/share/mise/shims:${target_home}/.local/bin:${user_gopath}/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
 
   if command -v rustup >/dev/null 2>&1; then
     if ! run_in_target_home "${target_home}" bash -c 'cd "$HOME" && rustup toolchain list' 2>/dev/null | grep -q stable; then
@@ -104,16 +104,22 @@ stage_apply() {
     run_in_target_home "${target_home}" env PATH="${user_tool_path}" GOPATH="${user_gopath}" bash -c 'cd "$HOME" && go install golang.org/x/tools/gopls@latest'
   fi
 
-  if command -v pipx >/dev/null 2>&1; then
+  if run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 bash -c 'command -v pip' >/dev/null 2>&1; then
+    log_info "Installing pipx via mise-managed pip for ${TARGET_USER}"
+    run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
+      bash -c 'cd "$HOME" && pip install --user pipx' || log_warn "pipx pip install failed; may already be installed"
     log_info "Installing Python tools via pipx for ${TARGET_USER}"
-    run_in_target_home "${target_home}" bash -c 'cd "$HOME" && pipx install pwntools' || log_warn "pwntools pipx install failed; may already be installed"
-    run_in_target_home "${target_home}" bash -c 'cd "$HOME" && pipx ensurepath' || log_info "pipx PATH already configured for ${TARGET_USER}"
+    run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
+      bash -c 'cd "$HOME" && python -m pipx install pwntools' || log_warn "pwntools pipx install failed; may already be installed"
+    run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
+      bash -c 'cd "$HOME" && python -m pipx ensurepath' || log_info "pipx PATH already configured for ${TARGET_USER}"
   fi
 
-  if command -v gem >/dev/null 2>&1; then
-    if ! gem list -i bundler >/dev/null 2>&1; then
-      log_info "Installing bundler gem"
-      gem install bundler --no-document
+  if run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 bash -c 'command -v gem' >/dev/null 2>&1; then
+    if ! run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 bash -c 'gem list -i bundler' >/dev/null 2>&1; then
+      log_info "Installing bundler gem via mise-managed ruby"
+      run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
+        bash -c 'cd "$HOME" && gem install bundler --no-document'
     fi
   fi
 
@@ -143,7 +149,7 @@ stage_verify() {
 
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
   user_gopath="${target_home}/.local/share/go"
-  user_tool_path="${target_home}/.local/bin:${user_gopath}/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
+  user_tool_path="${target_home}/.local/share/mise/shims:${target_home}/.local/bin:${user_gopath}/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
 
   [[ -f "${target_home}/.bashrc.d/51-golang.sh" ]] || { log_error "Go PATH drop-in not deployed"; return 1; }
   [[ -f "${target_home}/.bashrc.d/52-cargo.sh" ]] || { log_error "Cargo PATH drop-in not deployed"; return 1; }

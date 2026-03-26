@@ -261,7 +261,34 @@ stage_apply() {
   install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/btop.theme" \
     ".config/btop/themes/pink-rot.theme"
 
-  # 7. GTK / Thunar — keep the current system theme mode in sync
+  # 7. qutebrowser — pink-rot theme overlay
+  if [[ -f "${target_home}/.config/qutebrowser/config.py" ]]; then
+    install_user_file "${BOOTSTRAP_ROOT}/files/theme/pink-rot/qutebrowser-theme.py" \
+      ".config/qutebrowser/pink-rot-theme.py"
+    if ! grep -q 'pink-rot-theme.py' "${target_home}/.config/qutebrowser/config.py" 2>/dev/null; then
+      printf '\nconfig.source("pink-rot-theme.py")\n' >> "${target_home}/.config/qutebrowser/config.py"
+      chown "${TARGET_USER}:${TARGET_USER}" "${target_home}/.config/qutebrowser/config.py"
+    fi
+  fi
+
+  # 8. Gum — persist pink-rot theme to user shell
+  install_user_dir ".bashrc.d"
+  local gum_theme_tmp
+  gum_theme_tmp="$(mktemp)"
+  cat > "${gum_theme_tmp}" <<'GUM_THEME'
+# Pink-rot gum theme
+export GUM_INPUT_CURSOR_FOREGROUND="#d40d40"
+export GUM_INPUT_PROMPT_FOREGROUND="#f17e97"
+export GUM_CHOOSE_CURSOR_FOREGROUND="#d40d40"
+export GUM_CHOOSE_SELECTED_FOREGROUND="#f17e97"
+export GUM_CONFIRM_SELECTED_FOREGROUND="#050007"
+export GUM_CONFIRM_SELECTED_BACKGROUND="#d40d40"
+export GUM_CONFIRM_UNSELECTED_FOREGROUND="#a85869"
+GUM_THEME
+  install_user_file "${gum_theme_tmp}" ".bashrc.d/99-gum-theme.sh"
+  rm -f "${gum_theme_tmp}"
+
+  # 9. GTK / Thunar — keep the current system theme mode in sync
   install_user_dir ".config/gtk-3.0"
   install_user_dir ".config/gtk-4.0"
   install_user_dir ".config/xsettingsd"
