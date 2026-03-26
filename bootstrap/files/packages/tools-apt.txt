@@ -66,4 +66,5 @@ golang
 # python, ruby, and node are managed by mise (stage 40-repos-external)
 rustup
 build-essential
+cmake
 unzip

@@ -46,6 +46,55 @@ run_in_target_home() {
   runuser -u "${TARGET_USER}" -- env HOME="${target_home}" "$@"
 }
 
+choose_vpn_tools() {
+  SELECTED_VPN_TOOLS=()
+
+  if command -v gum >/dev/null 2>&1; then
+    while IFS= read -r tool_name; do
+      [[ -n "${tool_name}" ]] || continue
+      SELECTED_VPN_TOOLS+=("${tool_name}")
+    done < <(gum choose --no-limit --header "Select VPN tools to install" "netbird" "tailscale")
+    return 0
+  fi
+
+  printf 'Select VPN tools to install (comma-separated: netbird,tailscale or blank for none): ' >&2
+  local answer normalized tool_name
+  read -r answer
+  normalized="${answer// /}"
+  IFS=',' read -r -a SELECTED_VPN_TOOLS <<<"${normalized}"
+
+  for tool_name in "${SELECTED_VPN_TOOLS[@]}"; do
+    case "${tool_name}" in
+      ""|netbird|tailscale) ;;
+      *)
+        log_warn "Ignoring unknown VPN selection: ${tool_name}"
+        ;;
+    esac
+  done
+}
+
+vpn_tool_selected() {
+  local desired_tool="$1"
+  local selected_tool
+
+  for selected_tool in "${SELECTED_VPN_TOOLS[@]:-}"; do
+    if [[ "${selected_tool}" == "${desired_tool}" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+disable_service_if_present() {
+  local service_name="$1"
+
+  if systemctl list-unit-files "${service_name}.service" --no-legend 2>/dev/null | grep -q "^${service_name}\.service"; then
+    log_info "Leaving ${service_name}.service installed but disabled"
+    systemctl disable --now "${service_name}.service" 2>/dev/null || log_warn "Could not fully disable ${service_name}.service"
+  fi
+}
+
 add_mise_apt_repo() {
   if apt_package_installed mise; then
     log_info "mise already installed via apt"
@@ -79,17 +128,7 @@ install_netbird() {
     return 0
   fi
 
-  local install_it=false
-  if command -v gum >/dev/null 2>&1; then
-    gum confirm "Install Netbird VPN?" && install_it=true
-  else
-    printf 'Install Netbird VPN? [y/N]: ' >&2
-    local answer
-    read -r answer
-    [[ "${answer}" =~ ^[Yy] ]] && install_it=true
-  fi
-
-  if [[ "${install_it}" != "true" ]]; then
+  if ! vpn_tool_selected "netbird"; then
     log_info "Skipping Netbird installation"
     return 0
   fi
@@ -102,6 +141,7 @@ install_netbird() {
     | tee /etc/apt/sources.list.d/netbird.list >/dev/null
   apt-get update -y
   apt-get install -y netbird netbird-ui
+  disable_service_if_present "netbird"
 }
 
 install_tailscale() {
@@ -110,17 +150,7 @@ install_tailscale() {
     return 0
   fi
 
-  local install_it=false
-  if command -v gum >/dev/null 2>&1; then
-    gum confirm "Install Tailscale?" && install_it=true
-  else
-    printf 'Install Tailscale? [y/N]: ' >&2
-    local answer
-    read -r answer
-    [[ "${answer}" =~ ^[Yy] ]] && install_it=true
-  fi
-
-  if [[ "${install_it}" != "true" ]]; then
+  if ! vpn_tool_selected "tailscale"; then
     log_info "Skipping Tailscale installation"
     return 0
   fi
@@ -162,7 +192,7 @@ UNIT
 
   install -d -m 700 /var/lib/tailscale
   systemctl daemon-reload
-  systemctl enable tailscaled
+  disable_service_if_present "tailscaled"
 
   rm -rf "${tmp_tar}" "${tmp_dir}"
 
@@ -183,6 +213,8 @@ stage_apply() {
   install_user_dir ".bashrc.d"
   install_user_file "${BOOTSTRAP_ROOT}/files/desktop/shell/bashrc.d/50-mise.sh" ".bashrc.d/50-mise.sh"
   setup_mise_globals "${target_home}"
+
+  choose_vpn_tools
 
   # Netbird
   install_netbird

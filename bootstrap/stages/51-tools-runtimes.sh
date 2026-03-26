@@ -108,9 +108,13 @@ stage_apply() {
     log_info "Installing pipx via mise-managed pip for ${TARGET_USER}"
     run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
       bash -c 'cd "$HOME" && python -m pip install --user pipx' || log_warn "pipx pip install failed; may already be installed"
-    log_info "Installing Python tools via pipx for ${TARGET_USER}"
-    run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
-      bash -c 'cd "$HOME" && python -m pipx install pwntools' || log_warn "pwntools pipx install failed; may already be installed"
+    if run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 bash -c 'cd "$HOME" && command -v pwn' >/dev/null 2>&1; then
+      log_info "pwntools already available for ${TARGET_USER}"
+    else
+      log_info "Installing Python tools via pipx for ${TARGET_USER}"
+      run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
+        bash -c 'cd "$HOME" && python -m pipx install pwntools'
+    fi
     run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
       bash -c 'cd "$HOME" && python -m pipx ensurepath' || log_info "pipx PATH already configured for ${TARGET_USER}"
   fi
