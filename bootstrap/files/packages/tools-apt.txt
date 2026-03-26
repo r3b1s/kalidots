@@ -63,7 +63,7 @@ rofimoji
 
 # --- Language Runtimes and Build Tools ---
 golang
-# python, ruby, and node are managed by mise (stage 40-repos-external)
+# python and node are managed by mise (stage 40-repos-external)
 rustup
 build-essential
 cmake

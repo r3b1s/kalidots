@@ -119,14 +119,6 @@ stage_apply() {
       bash -c 'cd "$HOME" && python -m pipx ensurepath' || log_info "pipx PATH already configured for ${TARGET_USER}"
   fi
 
-  if run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 bash -c 'command -v gem' >/dev/null 2>&1; then
-    if ! run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 bash -c 'gem list -i bundler' >/dev/null 2>&1; then
-      log_info "Installing bundler gem via mise-managed ruby"
-      run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
-        bash -c 'cd "$HOME" && gem install bundler --no-document'
-    fi
-  fi
-
   repos_file="${BOOTSTRAP_ROOT}/files/tools/repos.txt"
   if [[ -f "${repos_file}" ]]; then
     while IFS='|' read -r url dest shallow || [[ -n "${url}" ]]; do

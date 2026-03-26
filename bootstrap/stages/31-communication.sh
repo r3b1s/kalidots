@@ -10,7 +10,7 @@ source "${BOOTSTRAP_ROOT}/lib/users.sh"
 
 repair_flatpak_system_repo() {
   log_warn "Attempting Flatpak system repo repair"
-  flatpak repair --system -y || log_warn "Flatpak repair did not complete cleanly"
+  flatpak repair --system --noninteractive || log_warn "Flatpak repair did not complete cleanly"
 }
 
 install_flatpak_app() {

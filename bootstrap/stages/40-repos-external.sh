@@ -95,6 +95,37 @@ disable_service_if_present() {
   fi
 }
 
+run_apt_without_service_autostart() {
+  local policy_file="/usr/sbin/policy-rc.d"
+  local backup_file=""
+  local status
+
+  if [[ -e "${policy_file}" ]]; then
+    backup_file="$(mktemp)"
+    cp "${policy_file}" "${backup_file}"
+  fi
+
+  cat > "${policy_file}" <<'POLICY'
+#!/usr/bin/env bash
+exit 101
+POLICY
+  chmod 755 "${policy_file}"
+
+  set +e
+  "$@"
+  status=$?
+  set -e
+
+  if [[ -n "${backup_file}" ]]; then
+    cp "${backup_file}" "${policy_file}"
+    rm -f "${backup_file}"
+  else
+    rm -f "${policy_file}"
+  fi
+
+  return "${status}"
+}
+
 add_mise_apt_repo() {
   if apt_package_installed mise; then
     log_info "mise already installed via apt"
@@ -117,9 +148,6 @@ setup_mise_globals() {
   log_info "Installing global runtimes via mise for ${TARGET_USER}"
   run_in_target_home "${target_home}" env "${mise_env}" mise use --global node@lts
   run_in_target_home "${target_home}" env "${mise_env}" mise use --global python@latest
-  log_info "Configuring mise to prefer precompiled Ruby for ${TARGET_USER}"
-  run_in_target_home "${target_home}" env "${mise_env}" mise settings set ruby.compile false
-  run_in_target_home "${target_home}" env "${mise_env}" mise use --global ruby@latest
 }
 
 install_netbird() {
@@ -140,7 +168,7 @@ install_netbird() {
   echo "deb [signed-by=/etc/apt/keyrings/netbird-archive-keyring.gpg] https://pkgs.netbird.io/debian stable main" \
     | tee /etc/apt/sources.list.d/netbird.list >/dev/null
   apt-get update -y
-  apt-get install -y netbird netbird-ui
+  run_apt_without_service_autostart apt-get install -y netbird netbird-ui
   disable_service_if_present "netbird"
 }
 
@@ -237,8 +265,6 @@ stage_verify() {
     bash -c 'command -v node' >/dev/null 2>&1 || { log_error "node not available via mise"; return 1; }
   run_in_target_home "${target_home}" env PATH="${mise_shims}:${PATH}" MISE_USE_VERSIONS_HOST=0 \
     bash -c 'command -v python' >/dev/null 2>&1 || { log_error "python not available via mise"; return 1; }
-  run_in_target_home "${target_home}" env PATH="${mise_shims}:${PATH}" MISE_USE_VERSIONS_HOST=0 \
-    bash -c 'command -v ruby' >/dev/null 2>&1 || { log_error "ruby not available via mise"; return 1; }
 
   log_info "repos-external stage verified"
   return 0
