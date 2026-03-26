@@ -60,7 +60,7 @@ stage_apply() {
   # Install qutebrowser + dependencies via mise-managed pip
   log_info "Installing qutebrowser via mise-managed python for ${TARGET_USER}"
   run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
-    bash -c "cd \"\$HOME\" && python -m pip install --upgrade pip && python -m pip uninstall -y PyQt5 PyQtWebEngine >/dev/null 2>&1 || true && python -m pip install qutebrowser PyQt6 PyQt6-WebEngine adblock"
+    bash -c "cd \"\$HOME\" && python -m pip --isolated install --upgrade pip && python -m pip --isolated uninstall -y PyQt5 PyQtWebEngine >/dev/null 2>&1 || true && python -m pip --isolated install qutebrowser PyQt6 PyQt6-WebEngine adblock"
 
   # Create system wrapper
   cat > /usr/local/bin/qutebrowser <<WRAPPER
