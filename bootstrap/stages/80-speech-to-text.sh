@@ -84,7 +84,8 @@ stage_apply() {
   local tmp_conf
   tmp_conf="$(mktemp)"
   cat > "${tmp_conf}" <<'EOF'
-hotkey_enabled = false
+[hotkey]
+enabled = false
 EOF
   install_user_file "${tmp_conf}" ".config/voxtype/config.toml"
   rm -f "${tmp_conf}"
@@ -104,6 +105,9 @@ stage_verify() {
   local target_home
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
   [[ -f "${target_home}/.config/voxtype/config.toml" ]] || { log_error "voxtype config not deployed"; return 1; }
+  runuser -u "${TARGET_USER}" -- env HOME="${target_home}" \
+    bash -c 'cd "$HOME" && voxtype setup --help >/dev/null 2>&1' \
+    || { log_error "voxtype config is invalid or voxtype cannot read it"; return 1; }
 
   log_info "speech-to-text stage verified"
   return 0
