@@ -57,6 +57,38 @@ run_in_target_home() {
   runuser -u "${TARGET_USER}" -- env HOME="${target_home}" "$@"
 }
 
+ensure_stable_rust_toolchain() {
+  local target_home="$1"
+  local user_tool_path="$2"
+  local cargo_home="${target_home}/.cargo"
+  local rustup_home="${target_home}/.rustup"
+
+  command -v rustup >/dev/null 2>&1 || return 0
+
+  if run_in_target_home "${target_home}" env PATH="${user_tool_path}" \
+    CARGO_HOME="${cargo_home}" RUSTUP_HOME="${rustup_home}" \
+    bash -c 'cd "$HOME" && rustup toolchain list 2>/dev/null | grep -q "^stable"'; then
+    return 0
+  fi
+
+  log_info "Installing stable Rust toolchain for ${TARGET_USER}"
+  if ! run_in_target_home "${target_home}" env PATH="${user_tool_path}" \
+    CARGO_HOME="${cargo_home}" RUSTUP_HOME="${rustup_home}" \
+    bash -c 'cd "$HOME" && rustup set profile minimal && rustup toolchain install stable --profile minimal'; then
+    log_warn "Stable Rust toolchain install failed; cleaning partial state and retrying once"
+    run_in_target_home "${target_home}" env PATH="${user_tool_path}" \
+      CARGO_HOME="${cargo_home}" RUSTUP_HOME="${rustup_home}" \
+      bash -c 'cd "$HOME" && rustup toolchain uninstall stable >/dev/null 2>&1 || true'
+    run_in_target_home "${target_home}" env PATH="${user_tool_path}" \
+      CARGO_HOME="${cargo_home}" RUSTUP_HOME="${rustup_home}" \
+      bash -c 'cd "$HOME" && rustup set profile minimal && rustup toolchain install stable --profile minimal'
+  fi
+
+  run_in_target_home "${target_home}" env PATH="${user_tool_path}" \
+    CARGO_HOME="${cargo_home}" RUSTUP_HOME="${rustup_home}" \
+    bash -c 'cd "$HOME" && rustup default stable'
+}
+
 stage_apply() {
   ensure_gum_or_prompt_fallback
   load_or_prompt_target_user >/dev/null
@@ -86,12 +118,7 @@ stage_apply() {
 
   user_tool_path="${target_home}/.local/share/mise/shims:${target_home}/.local/bin:${user_gopath}/bin:${target_home}/.cargo/bin:/usr/local/go/bin:${PATH}"
 
-  if command -v rustup >/dev/null 2>&1; then
-    if ! run_in_target_home "${target_home}" bash -c 'cd "$HOME" && rustup toolchain list' 2>/dev/null | grep -q stable; then
-      log_info "Installing stable Rust toolchain for ${TARGET_USER}"
-      run_in_target_home "${target_home}" bash -c 'cd "$HOME" && rustup default stable'
-    fi
-  fi
+  ensure_stable_rust_toolchain "${target_home}" "${user_tool_path}"
 
   if command -v gum >/dev/null 2>&1; then
     log_info "gum already available: $(gum --version)"

@@ -82,44 +82,49 @@ install_i3status_rs() {
     return 0
   fi
 
-  if [[ ! -x "${cargo_bin}" ]]; then
-    log_info "Installing minimal Rust toolchain for ${TARGET_USER}"
-    runuser -u "${TARGET_USER}" -- env \
+  ensure_stable_rust_toolchain() {
+    if [[ ! -x "${rustup_bin}" ]]; then
+      log_info "Installing minimal Rust toolchain for ${TARGET_USER}"
+      runuser -u "${TARGET_USER}" -- env \
+        HOME="${target_home}" \
+        CARGO_HOME="${cargo_home}" \
+        RUSTUP_HOME="${rustup_home}" \
+        PATH="${user_path}" \
+        bash -lc 'curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none'
+    fi
+
+    log_info "Ensuring stable Rust toolchain for ${TARGET_USER}"
+    if ! runuser -u "${TARGET_USER}" -- env \
       HOME="${target_home}" \
       CARGO_HOME="${cargo_home}" \
       RUSTUP_HOME="${rustup_home}" \
       PATH="${user_path}" \
-      bash -lc 'curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable'
-  fi
+      bash -lc 'cd "$HOME" && rustup set profile minimal && rustup toolchain install stable --profile minimal'; then
+      log_warn "Stable Rust toolchain install failed; cleaning partial state and retrying once"
+      runuser -u "${TARGET_USER}" -- env \
+        HOME="${target_home}" \
+        CARGO_HOME="${cargo_home}" \
+        RUSTUP_HOME="${rustup_home}" \
+        PATH="${user_path}" \
+        bash -lc 'cd "$HOME" && rustup toolchain uninstall stable >/dev/null 2>&1 || true'
+      runuser -u "${TARGET_USER}" -- env \
+        HOME="${target_home}" \
+        CARGO_HOME="${cargo_home}" \
+        RUSTUP_HOME="${rustup_home}" \
+        PATH="${user_path}" \
+        bash -lc 'cd "$HOME" && rustup set profile minimal && rustup toolchain install stable --profile minimal'
+    fi
 
-  if [[ -x "${rustup_bin}" ]] && ! runuser -u "${TARGET_USER}" -- env \
-    HOME="${target_home}" \
-    CARGO_HOME="${cargo_home}" \
-    RUSTUP_HOME="${rustup_home}" \
-    PATH="${user_path}" \
-    rustup show active-toolchain >/dev/null 2>&1; then
-    log_info "Configuring default stable Rust toolchain for ${TARGET_USER}"
     runuser -u "${TARGET_USER}" -- env \
       HOME="${target_home}" \
       CARGO_HOME="${cargo_home}" \
       RUSTUP_HOME="${rustup_home}" \
       PATH="${user_path}" \
       rustup default stable
-  fi
+  }
 
-  if [[ -x "${rustup_bin}" ]] && ! runuser -u "${TARGET_USER}" -- env \
-    HOME="${target_home}" \
-    CARGO_HOME="${cargo_home}" \
-    RUSTUP_HOME="${rustup_home}" \
-    PATH="${user_path}" \
-    bash -lc 'rustup toolchain list 2>/dev/null | grep -q "^stable"' ; then
-    log_info "Installing stable Rust toolchain for ${TARGET_USER}"
-    runuser -u "${TARGET_USER}" -- env \
-      HOME="${target_home}" \
-      CARGO_HOME="${cargo_home}" \
-      RUSTUP_HOME="${rustup_home}" \
-      PATH="${user_path}" \
-      rustup default stable
+  if [[ ! -x "${cargo_bin}" ]] || [[ -x "${rustup_bin}" ]]; then
+    ensure_stable_rust_toolchain
   fi
 
   if [[ ! -x "${cargo_bin}" ]]; then
