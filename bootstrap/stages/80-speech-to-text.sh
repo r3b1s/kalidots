@@ -89,10 +89,11 @@ EOF
   install_user_file "${tmp_conf}" ".config/voxtype/config.toml"
   rm -f "${tmp_conf}"
 
-  # Download whisper model
+  # Download a default Whisper model non-interactively
   log_info "Downloading whisper tiny.en model for ${TARGET_USER}"
   runuser -u "${TARGET_USER}" -- env HOME="${target_home}" \
-    bash -c 'cd "$HOME" && voxtype model download tiny.en' || log_warn "Whisper model download failed; can be retried later"
+    bash -c 'cd "$HOME" && voxtype setup --download --model tiny.en --quiet' \
+    || log_warn "Whisper model download failed; retry with: voxtype setup --download --model tiny.en --quiet"
 }
 
 stage_verify() {
