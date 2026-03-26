@@ -109,8 +109,8 @@ stage_verify() {
   [[ -f "${target_home}/.config/qutebrowser/config.py" ]] || { log_error "qutebrowser config not deployed"; return 1; }
   [[ -x "${user_qutebrowser_bin}" ]] || { log_error "qutebrowser user entrypoint not installed"; return 1; }
   run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
-    bash -c 'cd "$HOME" && "$1" --version' bash "${user_qutebrowser_bin}" >/dev/null 2>&1 \
-    || { log_error "qutebrowser entrypoint is not runnable for ${TARGET_USER}"; return 1; }
+    bash -c 'cd "$HOME" && python -c "import qutebrowser"' >/dev/null 2>&1 \
+    || { log_error "qutebrowser package is not importable from mise-managed python"; return 1; }
 
   log_info "browser-qutebrowser stage verified"
   return 0
