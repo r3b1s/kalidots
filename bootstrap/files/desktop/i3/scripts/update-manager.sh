@@ -8,7 +8,7 @@ MANIFEST="${HOME}/.config/kalidots/update-manifest.json"
 TERM_CMD="${TERMINAL:-alacritty}"
 
 notify() {
-  notify-send "Update Manager" "$1" 2>/dev/null || true
+  notify-send -t 5000 "Update Manager" "$1" 2>/dev/null || true
 }
 
 confirm() {

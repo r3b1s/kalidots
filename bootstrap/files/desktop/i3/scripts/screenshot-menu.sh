@@ -2,8 +2,11 @@
 set -euo pipefail
 
 timestamp="$(date +%Y%m%d-%H%M%S)"
-output="/tmp/screenshot-${timestamp}.png"
+output_dir="${HOME}/screenshots"
+output="${output_dir}/screenshot-${timestamp}.png"
 mode="${1:-menu}"
+
+mkdir -p "${output_dir}"
 
 if [[ "${mode}" == "menu" ]]; then
   choice="$(
@@ -25,14 +28,14 @@ fi
 case "${choice}" in
   Fullscreen)
     scrot "${output}"
-    notify-send "Screenshot Saved" "${output}"
+    notify-send -t 5000 "Screenshot Saved" "${output}"
     ;;
   "Screenshot Selection")
     scrot -s "${output}"
-    notify-send "Screenshot Saved" "${output}"
+    notify-send -t 5000 "Screenshot Saved" "${output}"
     ;;
   "Screenshot Selection To Clipboard")
-    scrot -s -f "${output}" -e 'xclip -selection clipboard -t image/png < "$f"'
-    notify-send "Screenshot" "Copied selection to clipboard"
+    scrot -s -f "/tmp/screenshot-${timestamp}.png" -e 'xclip -selection clipboard -t image/png < "$f" && rm -f "$f"'
+    notify-send -t 5000 "Screenshot" "Copied selection to clipboard"
     ;;
 esac

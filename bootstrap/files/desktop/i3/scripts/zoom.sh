@@ -12,11 +12,11 @@ case "${ACTION}" in
     SCALE="${SCALE:-1.0}"
     NEW_SCALE="$(echo "${SCALE} * 1.25" | bc)"
     xrandr --output "${PRIMARY}" --scale "${NEW_SCALE}x${NEW_SCALE}"
-    notify-send "Zoom" "${NEW_SCALE}x"
+    notify-send -t 5000 "Zoom" "${NEW_SCALE}x"
     ;;
   reset)
     xrandr --output "${PRIMARY}" --scale "1x1"
-    notify-send "Zoom" "Reset to 1x"
+    notify-send -t 5000 "Zoom" "Reset to 1x"
     ;;
   *)
     echo "Usage: $0 {in|reset}" >&2

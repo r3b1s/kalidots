@@ -42,4 +42,4 @@ done
 next="${PRESETS[$next_index]}"
 apply_border_width "${next}"
 printf '%s' "${next}" > "${STATE_FILE}"
-notify-send "Borders" "Border thickness set to ${next}px"
+notify-send -t 5000 "Borders" "Border thickness set to ${next}px"

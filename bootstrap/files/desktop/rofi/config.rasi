@@ -8,3 +8,11 @@ configuration {
     display-window: "Windows";
 }
 @theme "gruvbox-dark"
+
+window {
+    width: 42em;
+}
+
+listview {
+    lines: 12;
+}

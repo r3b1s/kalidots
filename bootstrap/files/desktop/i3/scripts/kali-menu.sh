@@ -76,6 +76,17 @@ rofi_pick_index() {
   printf '%s\n' "${choice}"
 }
 
+icon_or_default() {
+  local icon="${1:-}"
+  local fallback="$2"
+
+  if [[ -n "${icon}" ]]; then
+    printf '%s\n' "${icon}"
+  else
+    printf '%s\n' "${fallback}"
+  fi
+}
+
 find_kali_menu_file() {
   local candidate
   local -a candidates=(
@@ -191,30 +202,45 @@ slug_from_directory_file() {
 
 find_desktop_entries_by_slugs() {
   local -a slugs=("$@")
-  local -A seen=()
-  local desktop_file
-  local categories
-  local name
-  local icon
-  local slug
+  local cache_root="${XDG_CACHE_HOME:-${HOME}/.cache}/kalidots"
+  local cache_file="${cache_root}/desktop-entry-cache.tsv"
+  local -a desktop_files=()
+  local slug_regex
 
-  while IFS= read -r desktop_file; do
-    desktop_entry_hidden "${desktop_file}" && continue
-    categories="$(desktop_entry_value "${desktop_file}" "Categories")"
-    [[ -n "${categories}" ]] || continue
+  mkdir -p "${cache_root}"
+  mapfile -t desktop_files < <(find /usr/share/applications /usr/local/share/applications -maxdepth 1 -type f -name '*.desktop' 2>/dev/null | sort)
+  [[ ${#desktop_files[@]} -gt 0 ]] || return 0
 
-    for slug in "${slugs[@]}"; do
-      if [[ ";${categories};" == *";${slug};"* ]]; then
-        [[ -n "${seen[${desktop_file}]+x}" ]] && continue 2
-        name="$(desktop_entry_value "${desktop_file}" "Name")"
-        icon="$(desktop_entry_value "${desktop_file}" "Icon")"
-        [[ -n "${name}" ]] || continue 2
-        printf '%s\t%s\t%s\n' "${name}" "${icon}" "${desktop_file}"
-        seen["${desktop_file}"]=1
-        continue 2
-      fi
-    done
-  done < <(find /usr/share/applications /usr/local/share/applications -maxdepth 1 -type f -name '*.desktop' 2>/dev/null | sort)
+  if [[ ! -f "${cache_file}" ]] || find /usr/share/applications /usr/local/share/applications -maxdepth 1 -type f -name '*.desktop' -newer "${cache_file}" 2>/dev/null | grep -q .; then
+    awk -F= '
+      function flush_entry() {
+        if (file != "" && in_entry == 1 && name != "" && hidden != "true" && nodisplay != "true") {
+          printf "%s\t%s\t%s\t%s\n", name, icon, file, categories
+        }
+      }
+      FNR == 1 {
+        flush_entry()
+        file = FILENAME
+        in_entry = 0
+        name = ""
+        icon = ""
+        categories = ""
+        hidden = "false"
+        nodisplay = "false"
+      }
+      /^\[Desktop Entry\]$/ { in_entry = 1; next }
+      /^\[/ && $0 != "[Desktop Entry]" { in_entry = 0 }
+      in_entry && $1 == "Name" { sub(/^[^=]*=/, "", $0); name = $0; next }
+      in_entry && $1 == "Icon" { sub(/^[^=]*=/, "", $0); icon = $0; next }
+      in_entry && $1 == "Categories" { sub(/^[^=]*=/, "", $0); categories = $0; next }
+      in_entry && $1 == "Hidden" { sub(/^[^=]*=/, "", $0); hidden = $0; next }
+      in_entry && $1 == "NoDisplay" { sub(/^[^=]*=/, "", $0); nodisplay = $0; next }
+      END { flush_entry() }
+    ' "${desktop_files[@]}" 2>/dev/null | sort -t $'\t' -k1,1f > "${cache_file}"
+  fi
+
+  slug_regex="$(printf '%s\n' "${slugs[@]}" | paste -sd'|' -)"
+  awk -F'\t' -v regex=";(${slug_regex});" '$4 ~ regex { print $1 "\t" $2 "\t" $3 }' "${cache_file}"
 }
 
 show_app_list_for_slugs() {
@@ -233,14 +259,14 @@ show_app_list_for_slugs() {
 
   mapfile -t app_rows < <(find_desktop_entries_by_slugs "${slugs[@]}" | sort -t $'\t' -k1,1f)
   [[ ${#app_rows[@]} -gt 0 ]] || {
-    notify-send "Kali Tools" "No launchers found for ${prompt}"
+    notify-send -t 5000 "Kali Tools" "No launchers found for ${prompt}"
     return 0
   }
 
   for row in "${app_rows[@]}"; do
     IFS=$'\t' read -r label icon desktop_file <<<"${row}"
     labels+=("${label}")
-    icons+=("${icon}")
+    icons+=("$(icon_or_default "${icon}" "application-x-executable")")
     desktop_files+=("${desktop_file}")
   done
 
@@ -267,7 +293,7 @@ show_category_tools() {
   local sub_icon
 
   category_directory_file="$(find_directory_file "${category_directory}")" || {
-    notify-send "Kali Tools" "Missing directory metadata for ${category_name}"
+    notify-send -t 5000 "Kali Tools" "Missing directory metadata for ${category_name}"
     return 0
   }
   category_slug="$(slug_from_directory_file "${category_directory_file}")"
@@ -288,7 +314,7 @@ show_category_tools() {
     sub_directory_file="$(find_directory_file "${sub_directory}")" || continue
     sub_icon="$(directory_icon_for_file "${sub_directory_file}")"
     labels+=("${sub_name}")
-    icons+=("${sub_icon}")
+    icons+=("$(icon_or_default "${sub_icon}" "applications-other")")
     sub_slugs+=("$(slug_from_directory_file "${sub_directory_file}")")
   done
 
@@ -314,13 +340,13 @@ show_tools_menu() {
   local directory_file
 
   menu_file="$(find_kali_menu_file)" || {
-    notify-send "Kali Tools" "Could not find kali-applications.menu"
+    notify-send -t 5000 "Kali Tools" "Could not find kali-applications.menu"
     return 0
   }
 
   mapfile -t top_rows < <(parse_top_categories "${menu_file}")
   [[ ${#top_rows[@]} -gt 0 ]] || {
-    notify-send "Kali Tools" "No Kali categories found"
+    notify-send -t 5000 "Kali Tools" "No Kali categories found"
     return 0
   }
 
@@ -328,7 +354,7 @@ show_tools_menu() {
     IFS=$'\t' read -r name directory <<<"${row}"
     directory_file="$(find_directory_file "${directory}")" || continue
     labels+=("$(directory_name_for_file "${directory_file}")")
-    icons+=("$(directory_icon_for_file "${directory_file}")")
+    icons+=("$(icon_or_default "$(directory_icon_for_file "${directory_file}")" "applications-other")")
     directories+=("${directory}")
   done
 
@@ -473,7 +499,7 @@ render_flat_paths_menu_script() {
   local row label icon path
 
   rofi_script_header "Paths" "flat-paths|${mode}"
-  rofi_script_row "← Back" "go-previous" "back|main"
+  rofi_script_row "Back" "go-previous" "back|main"
 
   mapfile -t path_rows < <(flat_path_entries)
   for row in "${path_rows[@]}"; do
@@ -484,7 +510,7 @@ render_flat_paths_menu_script() {
 
 render_screen_recording_menu_script() {
   rofi_script_header "Recording" "recording"
-  rofi_script_row "← Back" "go-previous" "back|main"
+  rofi_script_row "Back" "go-previous" "back|main"
   rofi_script_row "Record Full Screen" "video-display" "recording|fullscreen"
   rofi_script_row "Record Selection" "video-x-generic" "recording|area"
   rofi_script_row "Record Selection To GIF" "image-gif" "recording|gif"
@@ -492,7 +518,7 @@ render_screen_recording_menu_script() {
 
 render_screenshot_menu_script() {
   rofi_script_header "Screenshot" "screenshot"
-  rofi_script_row "← Back" "go-previous" "back|main"
+  rofi_script_row "Back" "go-previous" "back|main"
   rofi_script_row "Fullscreen" "applets-screenshooter" "screenshot|fullscreen"
   rofi_script_row "Screenshot Selection" "selection-rectangular" "screenshot|selection"
   rofi_script_row "Screenshot Selection To Clipboard" "edit-copy" "screenshot|clipboard"
@@ -508,7 +534,7 @@ render_tools_menu_script() {
 
   menu_file="$(find_kali_menu_file)" || exit 0
   rofi_script_header "Tools" "tools-top"
-  rofi_script_row "← Back" "go-previous" "back|main"
+  rofi_script_row "Back" "go-previous" "back|main"
 
   mapfile -t top_rows < <(parse_top_categories "${menu_file}")
   for row in "${top_rows[@]}"; do
@@ -516,7 +542,7 @@ render_tools_menu_script() {
     directory_file="$(find_directory_file "${directory}")" || continue
     rofi_script_row \
       "$(directory_name_for_file "${directory_file}")" \
-      "$(directory_icon_for_file "${directory_file}")" \
+      "$(icon_or_default "$(directory_icon_for_file "${directory_file}")" "applications-other")" \
       "tools-category|$(directory_name_for_file "${directory_file}")|${directory}"
   done
 }
@@ -557,12 +583,13 @@ render_tools_category_menu_script() {
   slugs_csv="$(IFS=,; printf '%s' "${sub_slugs[*]}")"
 
   rofi_script_header "${category_name}" "tools-category|${category_name}|${category_directory}"
+  rofi_script_row "Back" "go-previous" "back|tools-top"
   rofi_script_row "All Tools" "${category_icon}" "tools-apps|${category_name}|${slugs_csv}"
 
   for row in "${sub_rows[@]}"; do
     IFS=$'\t' read -r sub_name sub_directory <<<"${row}"
     sub_directory_file="$(find_directory_file "${sub_directory}")" || continue
-    sub_icon="$(directory_icon_for_file "${sub_directory_file}")"
+    sub_icon="$(icon_or_default "$(directory_icon_for_file "${sub_directory_file}")" "applications-other")"
     rofi_script_row \
       "${sub_name}" \
       "${sub_icon}" \
@@ -582,11 +609,12 @@ render_tools_app_menu_script() {
 
   IFS=',' read -r -a slugs <<<"${slugs_csv}"
   rofi_script_header "${prompt}" "tools-apps|${prompt}|${slugs_csv}"
+  rofi_script_row "Back" "go-previous" "back|tools-top"
 
   mapfile -t app_rows < <(find_desktop_entries_by_slugs "${slugs[@]}" | sort -t $'\t' -k1,1f)
   for row in "${app_rows[@]}"; do
     IFS=$'\t' read -r label icon desktop_file <<<"${row}"
-    rofi_script_row "${label}" "${icon}" "launch-desktop|${desktop_file}"
+    rofi_script_row "${label}" "$(icon_or_default "${icon}" "application-x-executable")" "launch-desktop|${desktop_file}"
   done
 }
 
@@ -611,7 +639,10 @@ handle_rofi_script_selection() {
       esac
       ;;
     back)
-      render_main_menu_script
+      case "${arg1}" in
+        tools-top) render_tools_menu_script ;;
+        *) render_main_menu_script ;;
+      esac
       ;;
     flat-paths)
       # Data stored as flat-paths|mode, selection handled via path-open info
@@ -654,9 +685,20 @@ launch_rofi_script_mode() {
   exec rofi -show Kali -modes "Kali:${BASH_SOURCE[0]}"
 }
 
+render_initial_menu_script() {
+  case "${KALIDOTS_ROFI_INITIAL:-main}" in
+    flat-paths\|terminal) render_flat_paths_menu_script "terminal" ;;
+    flat-paths\|file-manager) render_flat_paths_menu_script "file-manager" ;;
+    recording) render_screen_recording_menu_script ;;
+    screenshot) render_screenshot_menu_script ;;
+    tools-top) render_tools_menu_script ;;
+    *) render_main_menu_script ;;
+  esac
+}
+
 if [[ -n "${ROFI_RETV:-}" ]]; then
   if [[ "${ROFI_RETV}" == "0" ]]; then
-    render_main_menu_script
+    render_initial_menu_script
   else
     handle_rofi_script_selection "${1:-}"
   fi

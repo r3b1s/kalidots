@@ -161,6 +161,10 @@ set $ws_pad3 "🗒️3"
 set $ws_pad4 "🗒️4"
 set $ws_pad5 "🗒️5"
 set $ws_pad6 "🗒️6"
+set $ws_browser "🌐"
+set $ws_mail "✉️"
+set $ws_term2 "💻"
+set $ws_secrets "🔐"
 
 bindsym $mod+o workspace $ws_notes
 bindsym $mod+comma workspace $ws_comms1
@@ -190,13 +194,13 @@ bindsym $mod+Ctrl+Mod1+Down move workspace to output down
 bindsym $mod+Ctrl+Mod1+Up move workspace to output up
 bindsym $mod+Ctrl+Mod1+Right move workspace to output right
 
-# ─── Quick Launchers ───────────────────────────────────────────────────────────
+# ─── Workspace Shortcuts ───────────────────────────────────────────────────────
 
 bindsym $mod+p exec --no-startup-id $term -e btop
-bindsym $mod+a exec --no-startup-id $scripts/scratchpad-launch.sh sp-browser firefox-esr
-bindsym $mod+Shift+e exec --no-startup-id $scripts/scratchpad-launch.sh sp-email thunderbird
-bindsym $mod+Ctrl+t exec --no-startup-id $scripts/scratchpad-launch.sh sp-term "$term"
-bindsym $mod+Shift+p exec --no-startup-id $scripts/scratchpad-launch.sh sp-keepassxc "flatpak run org.keepassxc.KeePassXC"
+bindsym $mod+a workspace $ws_browser
+bindsym $mod+Shift+e workspace $ws_mail
+bindsym $mod+Ctrl+t workspace $ws_term2
+bindsym $mod+Shift+p workspace $ws_secrets
 
 # ─── Kali Directory Shortcuts ──────────────────────────────────────────────────
 # Ctrl+KEY = terminal, Ctrl+Alt+KEY = thunar
@@ -214,7 +218,7 @@ bindsym $mod+Ctrl+0 exec --no-startup-id $term --working-directory /var/www/html
 
 bindsym $mod+Ctrl+Mod1+1 exec --no-startup-id thunar /usr/share
 bindsym $mod+Ctrl+Mod1+w exec --no-startup-id thunar /usr/share/wordlists
-bindsym $mod+Ctrl+Mod1+e exec --no-startup-id $scripts/kali-menu.sh paths-files
+bindsym $mod+Ctrl+Mod1+e exec --no-startup-id env KALIDOTS_ROFI_INITIAL='flat-paths|file-manager' $scripts/kali-menu.sh main
 bindsym $mod+Ctrl+Mod1+2 exec --no-startup-id thunar /opt
 bindsym $mod+Ctrl+Mod1+3 exec --no-startup-id thunar /tmp
 bindsym $mod+Ctrl+Mod1+4 exec --no-startup-id thunar /usr/share/exploitdb
@@ -225,7 +229,7 @@ bindsym $mod+Ctrl+Mod1+0 exec --no-startup-id thunar /var/www/html
 
 # ─── Screenshots / Recording ───────────────────────────────────────────────────
 
-bindsym $mod+semicolon exec --no-startup-id scrot -s -f '/tmp/screenshot-%Y%m%d-%H%M%S.png' -e 'xclip -selection clipboard -t image/png < $f && notify-send "Screenshot" "Copied to clipboard"'
+bindsym $mod+semicolon exec --no-startup-id scrot -s -f '/tmp/screenshot-%Y%m%d-%H%M%S.png' -e 'xclip -selection clipboard -t image/png < $f && rm -f $f && notify-send -t 5000 "Screenshot" "Copied selection to clipboard"'
 bindsym $mod+Ctrl+semicolon exec --no-startup-id flameshot gui
 bindsym $mod+Mod1+semicolon exec --no-startup-id $scripts/screen-record.sh --fullscreen
 bindsym $mod+r exec --no-startup-id $scripts/screen-record.sh --area
@@ -246,7 +250,7 @@ bindsym $mod+x exec --no-startup-id xdotool key ctrl+x
 bindsym $mod+Ctrl+v exec --no-startup-id CM_LAUNCHER=rofi clipmenu
 bindsym $mod+Shift+Ctrl+Mod1+v exec --no-startup-id $scripts/clipboard-clear.sh
 
-# ─── App Launchers (non-scratchpad) ─────────────────────────────────────────────
+# ─── App Launchers ──────────────────────────────────────────────────────────────
 
 bindsym $mod+Ctrl+b exec --no-startup-id qutebrowser
 bindsym $mod+Ctrl+m exec --no-startup-id remmina
@@ -254,7 +258,7 @@ bindsym $mod+Shift+o exec --no-startup-id /opt/obsidian/Obsidian.AppImage
 bindsym $mod+Ctrl+e exec --no-startup-id rofimoji
 bindsym $mod+Mod1+t exec --no-startup-id $term --working-directory /usr/share
 bindsym $mod+d exec --no-startup-id voxtype toggle
-bindsym $mod+Mod1+e exec --no-startup-id $scripts/kali-menu.sh paths-term
+bindsym $mod+Mod1+e exec --no-startup-id env KALIDOTS_ROFI_INITIAL='flat-paths|terminal' $scripts/kali-menu.sh main
 
 # ─── System / Controls ─────────────────────────────────────────────────────────
 
@@ -302,9 +306,9 @@ bindsym $mod+Shift+Ctrl+Mod1+k exec --no-startup-id $scripts/keybinding-preview.
 # ─── VM Passthrough Mode ───────────────────────────────────────────────────────
 
 mode "passthru" {
-  bindsym Delete mode "default"; exec --no-startup-id notify-send "Passthrough" "Disabled"
+  bindsym Delete mode "default"; exec --no-startup-id notify-send -t 5000 "Passthrough" "Disabled"
 }
-bindsym $mod+Delete mode "passthru"; exec --no-startup-id notify-send "Passthrough" "Enabled — press Delete to exit"
+bindsym $mod+Delete mode "passthru"; exec --no-startup-id notify-send -t 5000 "Passthrough" "Enabled. Press Delete to exit"
 
 # ─── Startup ───────────────────────────────────────────────────────────────────
 

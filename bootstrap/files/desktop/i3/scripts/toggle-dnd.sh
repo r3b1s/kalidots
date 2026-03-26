@@ -5,9 +5,9 @@ dunstctl set-paused toggle
 
 if [ "$(dunstctl is-paused)" = "true" ]; then
   dunstctl set-paused false
-  notify-send "Do Not Disturb" "Enabled"
+  notify-send -t 5000 "Do Not Disturb" "Enabled"
   sleep 1
   dunstctl set-paused true
 else
-  notify-send "Do Not Disturb" "Disabled"
+  notify-send -t 5000 "Do Not Disturb" "Disabled"
 fi

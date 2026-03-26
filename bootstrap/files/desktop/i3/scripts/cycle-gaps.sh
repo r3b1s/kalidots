@@ -26,4 +26,4 @@ next_outer="${next##*:}"
 
 i3-msg "gaps inner current set ${next_inner}; gaps outer current set ${next_outer}" >/dev/null
 printf '%s' "${next}" > "${STATE_FILE}"
-notify-send "Gaps" "Inner gaps ${next_inner}px, outer gaps ${next_outer}px"
+notify-send -t 5000 "Gaps" "Inner gaps ${next_inner}px, outer gaps ${next_outer}px"

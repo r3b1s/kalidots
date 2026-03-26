@@ -13,6 +13,28 @@ info_bg = "#7b2235"
 info_fg = "#fff3f6"
 
 [[block]]
+block = "custom"
+command = "pgrep -x voxtype >/dev/null 2>&1 && echo VOX"
+format = " $text "
+interval = 2
+[block.theme_overrides]
+idle_bg = "#4f102d"
+idle_fg = "#ffd8f0"
+info_bg = "#6c1740"
+info_fg = "#fff2fa"
+
+[[block]]
+block = "custom"
+command = "[ -f /tmp/i3-autolock-disabled ] && echo LOCK-OFF || echo LOCK-ON"
+format = " $text "
+interval = 2
+[block.theme_overrides]
+idle_bg = "#3a2b16"
+idle_fg = "#ffe5b8"
+info_bg = "#59401d"
+info_fg = "#fff7e8"
+
+[[block]]
 block = "net"
 format = " $icon {$signal_strength $ssid $frequency|Wired} via $device "
 format_alt = " $icon {$ip|Down} "

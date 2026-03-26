@@ -24,6 +24,7 @@ window {
     border:       2px;
     border-color: @accent;
     padding:      0;
+    width:        42em;
 }
 
 mainbox {
@@ -47,7 +48,7 @@ entry {
 }
 
 listview {
-    lines:   8;
+    lines:   12;
     padding: 4px 0 0 0;
 }
 

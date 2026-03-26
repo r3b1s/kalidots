@@ -18,4 +18,4 @@ case "${DIRECTION}" in
 esac
 
 xrandr --output "${PRIMARY}" --scale "${NEW_SCALE}x${NEW_SCALE}"
-notify-send "Display Scale" "${NEW_SCALE}x"
+notify-send -t 5000 "Display Scale" "${NEW_SCALE}x"

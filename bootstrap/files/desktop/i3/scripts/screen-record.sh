@@ -4,12 +4,14 @@ set -euo pipefail
 PIDFILE="/tmp/i3-screenrecord.pid"
 INDICATOR="/tmp/i3-recording-active"
 STATEFILE="/tmp/i3-screenrecord.state"
+LOGFILE="/tmp/i3-screenrecord.log"
 MODE="${1:---fullscreen}"
+OUTPUT_DIR="${HOME}/recordings"
 
 require_command() {
   local cmd="$1"
   command -v "${cmd}" >/dev/null 2>&1 || {
-    notify-send "Recording Error" "Missing dependency: ${cmd}"
+    notify-send -t 5000 "Recording Error" "Missing dependency: ${cmd}"
     exit 1
   }
 }
@@ -20,12 +22,12 @@ recording_is_active() {
 
 write_state() {
   local mode="$1"
-  local output="$2"
+  local final_output="$2"
   local temp_output="$3"
 
   cat > "${STATEFILE}" <<EOF
 MODE=${mode}
-OUTPUT=${output}
+FINAL_OUTPUT=${final_output}
 TEMP_OUTPUT=${temp_output}
 EOF
 }
@@ -40,34 +42,70 @@ cleanup_state() {
   rm -f "${PIDFILE}" "${INDICATOR}" "${STATEFILE}"
 }
 
+wait_for_pid_exit() {
+  local pid="$1"
+  local remaining=100
+
+  while kill -0 "${pid}" 2>/dev/null && (( remaining > 0 )); do
+    sleep 0.1
+    ((remaining -= 1))
+  done
+}
+
+finalize_video() {
+  local temp_output="$1"
+  local final_output="$2"
+
+  ffmpeg -y -loglevel error -i "${temp_output}" -c copy "${final_output}" >>"${LOGFILE}" 2>&1
+}
+
+finalize_gif() {
+  local temp_output="$1"
+  local final_output="$2"
+
+  ffmpeg -y -loglevel error -i "${temp_output}" \
+    -vf "fps=15,scale=640:-1:flags=lanczos" \
+    "${final_output}" >>"${LOGFILE}" 2>&1
+}
+
 stop_recording() {
+  local pid=""
+  local temp_output=""
+  local final_output=""
+  local mode=""
+
+  if load_state; then
+    temp_output="${TEMP_OUTPUT:-}"
+    final_output="${FINAL_OUTPUT:-}"
+    mode="${MODE:-}"
+  fi
+
   if recording_is_active; then
-    local pid
     pid="$(cat "${PIDFILE}")"
 
     kill -INT "${pid}" 2>/dev/null || true
-    while kill -0 "${pid}" 2>/dev/null; do
-      sleep 0.2
-    done
-
-    if load_state && [[ "${MODE:-}" == "gif" && -n "${TEMP_OUTPUT:-}" && -f "${TEMP_OUTPUT}" ]]; then
-      require_command ffmpeg
-      ffmpeg -y -i "${TEMP_OUTPUT}" -vf "fps=15,scale=640:-1:flags=lanczos" "${OUTPUT}"
-      rm -f "${TEMP_OUTPUT}"
-      notify-send "GIF Saved" "${OUTPUT}"
-    elif load_state && [[ -n "${OUTPUT:-}" ]]; then
-      notify-send "Recording Saved" "${OUTPUT}"
-    else
-      notify-send "Recording Stopped" "Saved to /tmp/"
-    fi
-
-    cleanup_state
-  else
-    cleanup_state
+    wait_for_pid_exit "${pid}"
   fi
+
+  if [[ -n "${temp_output}" && -s "${temp_output}" && -n "${final_output}" ]]; then
+    require_command ffmpeg
+    case "${mode}" in
+      gif) finalize_gif "${temp_output}" "${final_output}" ;;
+      video) finalize_video "${temp_output}" "${final_output}" ;;
+    esac
+    rm -f "${temp_output}"
+    notify-send -t 5000 "Recording Stopped" "Saved to ${final_output}"
+  elif [[ -n "${final_output}" ]]; then
+    notify-send -t 5000 "Recording Error" "Capture failed. See ${LOGFILE}"
+  else
+    notify-send -t 5000 "Recording Stopped" "No active recording"
+  fi
+
+  cleanup_state
 }
 
 require_command ffmpeg
+mkdir -p "${OUTPUT_DIR}"
 
 # If already recording, stop (toggle behavior)
 if recording_is_active; then
@@ -76,16 +114,17 @@ if recording_is_active; then
 fi
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-OUTPUT="/tmp/recording-${TIMESTAMP}.mp4"
+FINAL_OUTPUT="${OUTPUT_DIR}/recording-${TIMESTAMP}.mp4"
+TEMP_OUTPUT="${OUTPUT_DIR}/.recording-${TIMESTAMP}.mkv"
 
 case "${MODE}" in
   --fullscreen)
     require_command xdpyinfo
     RESOLUTION="$(xdpyinfo | awk '/dimensions:/ {print $2}')"
-    write_state "video" "${OUTPUT}" ""
+    write_state "video" "${FINAL_OUTPUT}" "${TEMP_OUTPUT}"
     ffmpeg -y -loglevel error -f x11grab -framerate 30 -video_size "${RESOLUTION}" \
-      -i "${DISPLAY}+0,0" -preset ultrafast -pix_fmt yuv420p "${OUTPUT}" \
-      >/tmp/i3-screenrecord.log 2>&1 &
+      -i "${DISPLAY}+0,0" -c:v libx264 -preset ultrafast -pix_fmt yuv420p "${TEMP_OUTPUT}" \
+      >>"${LOGFILE}" 2>&1 &
     ;;
   --area)
     require_command slop
@@ -93,23 +132,23 @@ case "${MODE}" in
     [[ -n "${GEOMETRY}" ]] || exit 0
     SIZE="${GEOMETRY%%+*}"
     OFFSET="${GEOMETRY#*+}"
-    write_state "video" "${OUTPUT}" ""
+    write_state "video" "${FINAL_OUTPUT}" "${TEMP_OUTPUT}"
     ffmpeg -y -loglevel error -f x11grab -framerate 30 -video_size "${SIZE}" \
-      -i "${DISPLAY}+${OFFSET}" -preset ultrafast -pix_fmt yuv420p "${OUTPUT}" \
-      >/tmp/i3-screenrecord.log 2>&1 &
+      -i "${DISPLAY}+${OFFSET}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p "${TEMP_OUTPUT}" \
+      >>"${LOGFILE}" 2>&1 &
     ;;
   --gif)
     require_command slop
-    OUTPUT="/tmp/recording-${TIMESTAMP}.gif"
+    FINAL_OUTPUT="${OUTPUT_DIR}/recording-${TIMESTAMP}.gif"
     GEOMETRY="$(slop -f '%wx%h+%x,%y')"
     [[ -n "${GEOMETRY}" ]] || exit 0
     SIZE="${GEOMETRY%%+*}"
     OFFSET="${GEOMETRY#*+}"
-    MP4="/tmp/recording-${TIMESTAMP}-tmp.mp4"
-    write_state "gif" "${OUTPUT}" "${MP4}"
+    TEMP_OUTPUT="${OUTPUT_DIR}/.recording-${TIMESTAMP}-gif.mkv"
+    write_state "gif" "${FINAL_OUTPUT}" "${TEMP_OUTPUT}"
     ffmpeg -y -loglevel error -f x11grab -framerate 20 -video_size "${SIZE}" \
-      -i "${DISPLAY}+${OFFSET}" -preset ultrafast -pix_fmt yuv420p "${MP4}" \
-      >/tmp/i3-screenrecord.log 2>&1 &
+      -i "${DISPLAY}+${OFFSET}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p "${TEMP_OUTPUT}" \
+      >>"${LOGFILE}" 2>&1 &
     ;;
   --stop)
     stop_recording
@@ -123,4 +162,3 @@ esac
 
 echo $! > "${PIDFILE}"
 touch "${INDICATOR}"
-notify-send "Recording Started" "Press binding again to stop"

@@ -60,12 +60,13 @@ stage_apply() {
   # Install qutebrowser + dependencies via mise-managed pip
   log_info "Installing qutebrowser via mise-managed python for ${TARGET_USER}"
   run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
-    bash -c 'cd "$HOME" && python -m pip install qutebrowser PyQtWebEngine adblock'
+    bash -c "cd \"\$HOME\" && python -m pip install --upgrade pip && python -m pip uninstall -y PyQt5 PyQtWebEngine >/dev/null 2>&1 || true && python -m pip install qutebrowser PyQt6 PyQt6-WebEngine adblock"
 
   # Create system wrapper
   cat > /usr/local/bin/qutebrowser <<WRAPPER
 #!/usr/bin/env bash
 export PATH="${mise_shims}:\${PATH}"
+export QT_API=pyqt6
 exec "${user_qutebrowser_bin}" "\$@"
 WRAPPER
   chmod 755 /usr/local/bin/qutebrowser
@@ -111,6 +112,9 @@ stage_verify() {
   run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
     bash -c 'cd "$HOME" && python -c "import qutebrowser"' >/dev/null 2>&1 \
     || { log_error "qutebrowser package is not importable from mise-managed python"; return 1; }
+  run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
+    bash -c 'cd "$HOME" && python -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec(\"PyQt6\") and importlib.util.find_spec(\"PyQt6.QtWebEngineWidgets\") else 1)"' >/dev/null 2>&1 \
+    || { log_error "PyQt6 WebEngine is not installed for qutebrowser"; return 1; }
 
   log_info "browser-qutebrowser stage verified"
   return 0

@@ -110,13 +110,11 @@ DESKTOP
 
   # Deploy default vault
   local vault_dir="${target_home}/notes/obsidian-vault"
-  if [[ ! -d "${vault_dir}" ]]; then
-    install_user_dir "notes"
-    install_user_dir "notes/obsidian-vault"
-    if [[ -d "${BOOTSTRAP_ROOT}/files/note-taking/obsidian/default-vault" ]]; then
-      cp -r "${BOOTSTRAP_ROOT}/files/note-taking/obsidian/default-vault/." "${vault_dir}/"
-      chown -R "${TARGET_USER}:${TARGET_USER}" "${vault_dir}"
-    fi
+  install_user_dir "notes"
+  install_user_dir "notes/obsidian-vault"
+  if [[ -d "${BOOTSTRAP_ROOT}/files/note-taking/obsidian/default-vault" ]]; then
+    cp -r "${BOOTSTRAP_ROOT}/files/note-taking/obsidian/default-vault/." "${vault_dir}/"
+    chown -R "${TARGET_USER}:${TARGET_USER}" "${vault_dir}"
   fi
 
   register_in_manifest "obsidian" "github:obsidianmd/obsidian-releases" "appimage" "/opt/obsidian/Obsidian.AppImage" "${version}"

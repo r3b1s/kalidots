@@ -2,4 +2,4 @@
 set -euo pipefail
 
 rm -rf "${XDG_RUNTIME_DIR:?}/clipmenu"*
-notify-send "Clipboard" "History cleared"
+notify-send -t 5000 "Clipboard" "History cleared"
