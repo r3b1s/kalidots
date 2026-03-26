@@ -39,6 +39,7 @@ stage_apply() {
   local target_home
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
 
+  local user_qutebrowser_bin="${target_home}/.local/bin/qutebrowser"
   local mise_shims="${target_home}/.local/share/mise/shims"
   local user_path="${mise_shims}:${target_home}/.local/bin:${PATH}"
 
@@ -53,7 +54,7 @@ stage_apply() {
   cat > /usr/local/bin/qutebrowser <<WRAPPER
 #!/usr/bin/env bash
 export PATH="${mise_shims}:\${PATH}"
-exec python -m qutebrowser "\$@"
+exec "${user_qutebrowser_bin}" "\$@"
 WRAPPER
   chmod 755 /usr/local/bin/qutebrowser
 
@@ -80,9 +81,11 @@ stage_verify() {
 
   local target_home
   local mise_shims
+  local user_qutebrowser_bin
   local user_path
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
   mise_shims="${target_home}/.local/share/mise/shims"
+  user_qutebrowser_bin="${target_home}/.local/bin/qutebrowser"
   user_path="${mise_shims}:${target_home}/.local/bin:${PATH}"
 
   ensure_mise_python_available "${target_home}"
@@ -90,9 +93,10 @@ stage_verify() {
   [[ -x /usr/local/bin/qutebrowser ]] || { log_error "qutebrowser wrapper not installed"; return 1; }
   [[ -f /usr/share/applications/qutebrowser.desktop ]] || { log_error "qutebrowser .desktop file missing"; return 1; }
   [[ -f "${target_home}/.config/qutebrowser/config.py" ]] || { log_error "qutebrowser config not deployed"; return 1; }
+  [[ -x "${user_qutebrowser_bin}" ]] || { log_error "qutebrowser user entrypoint not installed"; return 1; }
   run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
-    bash -c 'cd "$HOME" && python -m qutebrowser --version' >/dev/null 2>&1 \
-    || { log_error "qutebrowser is not importable from mise-managed python"; return 1; }
+    bash -c 'cd "$HOME" && "$1" --version' bash "${user_qutebrowser_bin}" >/dev/null 2>&1 \
+    || { log_error "qutebrowser entrypoint is not runnable for ${TARGET_USER}"; return 1; }
 
   log_info "browser-qutebrowser stage verified"
   return 0
