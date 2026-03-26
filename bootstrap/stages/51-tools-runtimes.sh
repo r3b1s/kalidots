@@ -111,8 +111,9 @@ stage_apply() {
     if run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 bash -c 'cd "$HOME" && command -v pwn' >/dev/null 2>&1; then
       log_info "pwntools already available for ${TARGET_USER}"
     else
-      log_info "Installing Python tools via pipx for ${TARGET_USER}"
+      log_info "Installing Python tools via pipx for ${TARGET_USER} with serialized native builds"
       run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
+        CMAKE_BUILD_PARALLEL_LEVEL=1 MAKEFLAGS=-j1 \
         bash -c 'cd "$HOME" && python -m pipx install pwntools'
     fi
     run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
