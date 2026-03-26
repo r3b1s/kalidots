@@ -12,8 +12,9 @@ source "${BOOTSTRAP_ROOT}/lib/desktop.sh"
 # shellcheck disable=SC1091
 source "${BOOTSTRAP_ROOT}/lib/users.sh"
 
-readonly MANIFEST_DIR="${HOME}/.config/kalidots"
-readonly MANIFEST_FILE="${MANIFEST_DIR}/update-manifest.json"
+manifest_file_path() {
+  printf '%s\n' "${HOME}/.config/kalidots/update-manifest.json"
+}
 
 register_in_manifest() {
   local name="$1"
@@ -21,8 +22,11 @@ register_in_manifest() {
   local method="$3"
   local binary_path="$4"
   local version="$5"
+  local manifest_file
 
-  [[ -f "${MANIFEST_FILE}" ]] || return 0
+  manifest_file="$(manifest_file_path)"
+
+  [[ -f "${manifest_file}" ]] || return 0
 
   local tmp
   tmp="$(mktemp)"
@@ -33,7 +37,7 @@ register_in_manifest() {
        .tools |= map(if .name == $name then .current_version = $ver else . end)
      else
        .tools += [{"name": $name, "source": $source, "install_method": $method, "binary_path": $path, "current_version": $ver}]
-     end' "${MANIFEST_FILE}" > "${tmp}" && mv "${tmp}" "${MANIFEST_FILE}"
+     end' "${manifest_file}" > "${tmp}" && mv "${tmp}" "${manifest_file}"
 }
 
 run_in_target_home() {
