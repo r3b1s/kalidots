@@ -51,9 +51,9 @@ Each stage declares which profiles it belongs to, a `stage_apply` function, and 
 | `31-communication` | apps | Discord, Vesktop, Telegram, Element, Signal (multi-select) |
 | `32-browser-firefox` | desktop | Firefox profiles (operator + regular), addons, SecurityBookmarks, enterprise policy |
 | `33-browser-qutebrowser` | desktop | qutebrowser via PyPI (mise Python), adblock, system wrapper |
-| `40-repos-external` | tools | Mise runtime manager, global node/python/ruby, Netbird, Tailscale |
+| `40-repos-external` | tools | Mise runtime manager, global node/python, Netbird, Tailscale |
 | `50-tools-apt` | tools | 60+ security tool packages, reconftw (container), opengrep, rockyou |
-| `51-tools-runtimes` | tools | Rust toolchain, Go tools, pipx, bundler, reference repos |
+| `51-tools-runtimes` | tools | Rust toolchain, Go tools, pipx, reference repos |
 | `52-tools-privacy` | tools | Telemetry opt-outs (Go telemetry, registry enforcement across all manifests) |
 | `60-secrets-import` | secrets | SSH keys + KeePassXC vault import with strict permissions |
 | `70-llm-tooling` | llm | Deploy auth docs and config templates for LLM tools |
