@@ -16,6 +16,23 @@ run_in_target_home() {
   runuser -u "${TARGET_USER}" -- env HOME="${target_home}" "$@"
 }
 
+ensure_mise_python_available() {
+  local target_home="$1"
+  local mise_shims="${target_home}/.local/share/mise/shims"
+  local user_path="${mise_shims}:${target_home}/.local/bin:${PATH}"
+
+  if ! command -v mise >/dev/null 2>&1; then
+    log_error "mise is not installed; browser-qutebrowser must run after repos-external"
+    return 1
+  fi
+
+  if ! run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
+    bash -c 'cd "$HOME" && command -v python >/dev/null 2>&1'; then
+    log_error "mise-managed python is not available for ${TARGET_USER}; run the tools profile first"
+    return 1
+  fi
+}
+
 stage_apply() {
   load_or_prompt_target_user >/dev/null
 
@@ -25,10 +42,12 @@ stage_apply() {
   local mise_shims="${target_home}/.local/share/mise/shims"
   local user_path="${mise_shims}:${target_home}/.local/bin:${PATH}"
 
+  ensure_mise_python_available "${target_home}"
+
   # Install qutebrowser + dependencies via mise-managed pip
-  log_info "Installing qutebrowser via pip for ${TARGET_USER}"
+  log_info "Installing qutebrowser via mise-managed python for ${TARGET_USER}"
   run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
-    bash -c 'cd "$HOME" && pip install qutebrowser PyQtWebEngine adblock'
+    bash -c 'cd "$HOME" && python -m pip install qutebrowser PyQtWebEngine adblock'
 
   # Create system wrapper
   cat > /usr/local/bin/qutebrowser <<WRAPPER
@@ -60,11 +79,20 @@ stage_verify() {
   load_or_prompt_target_user >/dev/null
 
   local target_home
+  local mise_shims
+  local user_path
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
+  mise_shims="${target_home}/.local/share/mise/shims"
+  user_path="${mise_shims}:${target_home}/.local/bin:${PATH}"
+
+  ensure_mise_python_available "${target_home}"
 
   [[ -x /usr/local/bin/qutebrowser ]] || { log_error "qutebrowser wrapper not installed"; return 1; }
   [[ -f /usr/share/applications/qutebrowser.desktop ]] || { log_error "qutebrowser .desktop file missing"; return 1; }
   [[ -f "${target_home}/.config/qutebrowser/config.py" ]] || { log_error "qutebrowser config not deployed"; return 1; }
+  run_in_target_home "${target_home}" env PATH="${user_path}" MISE_USE_VERSIONS_HOST=0 \
+    bash -c 'cd "$HOME" && python -m qutebrowser --version' >/dev/null 2>&1 \
+    || { log_error "qutebrowser is not importable from mise-managed python"; return 1; }
 
   log_info "browser-qutebrowser stage verified"
   return 0
