@@ -105,7 +105,6 @@ stage_verify() {
 
   grep -q '^TELEMETRY_GO=' "${registry_file}" || { log_error "Telemetry registry missing Go entry"; return 1; }
   grep -q '^TELEMETRY_GOPLS=' "${registry_file}" || { log_error "Telemetry registry missing gopls entry"; return 1; }
-  grep -q '^TELEMETRY_PWNTOOLS=' "${registry_file}" || { log_error "Telemetry registry missing pwntools entry"; return 1; }
   grep -q '^TELEMETRY_PAYLOADSALLTHETHINGS=' "${registry_file}" || { log_error "Telemetry registry missing PayloadsAllTheThings entry"; return 1; }
 
   local apt_file

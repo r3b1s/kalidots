@@ -108,14 +108,6 @@ stage_apply() {
     log_info "Installing pipx via mise-managed pip for ${TARGET_USER}"
     run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
       bash -c 'cd "$HOME" && python -m pip install --user pipx' || log_warn "pipx pip install failed; may already be installed"
-    if run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 bash -c 'cd "$HOME" && command -v pwn' >/dev/null 2>&1; then
-      log_info "pwntools already available for ${TARGET_USER}"
-    else
-      log_info "Installing Python tools via pipx for ${TARGET_USER} with serialized native builds"
-      run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
-        CMAKE_BUILD_PARALLEL_LEVEL=1 MAKEFLAGS=-j1 \
-        bash -c 'cd "$HOME" && python -m pipx install pwntools'
-    fi
     run_in_target_home "${target_home}" env PATH="${user_tool_path}" MISE_USE_VERSIONS_HOST=0 \
       bash -c 'cd "$HOME" && python -m pipx ensurepath' || log_info "pipx PATH already configured for ${TARGET_USER}"
   fi
@@ -153,7 +145,6 @@ stage_verify() {
   run_in_target_home "${target_home}" env PATH="${user_tool_path}" bash -c 'cd "$HOME" && command -v cargo' >/dev/null 2>&1 || { log_error "cargo not available for target user"; return 1; }
   command -v gum >/dev/null 2>&1 || { log_error "gum not available"; return 1; }
   run_in_target_home "${target_home}" env PATH="${user_tool_path}" GOPATH="${user_gopath}" bash -c 'cd "$HOME" && command -v gopls' >/dev/null 2>&1 || { log_error "gopls not available for target user"; return 1; }
-  run_in_target_home "${target_home}" env PATH="${user_tool_path}" bash -c 'cd "$HOME" && command -v pwn' >/dev/null 2>&1 || { log_error "pwntools entrypoint not available for target user"; return 1; }
   [[ -d "/opt/tools/PayloadsAllTheThings/.git" ]] || { log_error "PayloadsAllTheThings not cloned"; return 1; }
 
   log_info "tools-runtimes stage verified"
