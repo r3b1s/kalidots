@@ -67,6 +67,104 @@ install_voxtype() {
   register_in_manifest "voxtype" "github:peteonrails/voxtype" "deb" "/usr/bin/voxtype" "${version}"
 }
 
+write_voxtype_config() {
+  local target_home="$1"
+  local tmp_conf
+  local rendered_default=false
+
+  tmp_conf="$(mktemp)"
+
+  if runuser -u "${TARGET_USER}" -- env HOME="${target_home}" \
+    bash -c 'cd "$HOME" && voxtype setup --show-config' >"${tmp_conf}" 2>/dev/null; then
+    rendered_default=true
+  else
+    cat > "${tmp_conf}" <<'EOF'
+state_file = "auto"
+
+[hotkey]
+enabled = false
+key = "SCROLLLOCK"
+
+[audio]
+device = "default"
+sample_rate = 16000
+max_duration_secs = 600
+
+[audio.feedback]
+enabled = true
+theme = "default"
+volume = 0.7
+
+[whisper]
+model = "tiny.en"
+language = "en"
+translate = false
+on_demand_loading = true
+
+[output]
+mode = "type"
+fallback_to_clipboard = true
+type_delay_ms = 1
+
+[output.notification]
+on_recording_start = false
+on_recording_stop = false
+on_transcription = true
+EOF
+  fi
+
+  if [[ "${rendered_default}" == "true" ]]; then
+    if grep -q '^state_file *= *' "${tmp_conf}"; then
+      sed -i 's/^state_file *= *.*/state_file = "auto"/' "${tmp_conf}"
+    else
+      printf 'state_file = "auto"\n\n%s' "$(cat "${tmp_conf}")" > "${tmp_conf}.new"
+      mv "${tmp_conf}.new" "${tmp_conf}"
+    fi
+
+    if grep -q '^\[hotkey\]' "${tmp_conf}"; then
+      awk '
+        BEGIN { in_hotkey = 0; enabled_written = 0 }
+        /^\[hotkey\]/ {
+          in_hotkey = 1
+          print
+          next
+        }
+        /^\[/ {
+          if (in_hotkey && !enabled_written) {
+            print "enabled = false"
+            enabled_written = 1
+          }
+          in_hotkey = 0
+        }
+        in_hotkey && /^enabled *= */ {
+          if (!enabled_written) {
+            print "enabled = false"
+            enabled_written = 1
+          }
+          next
+        }
+        { print }
+        END {
+          if (in_hotkey && !enabled_written) {
+            print "enabled = false"
+          }
+        }
+      ' "${tmp_conf}" > "${tmp_conf}.new"
+      mv "${tmp_conf}.new" "${tmp_conf}"
+    else
+      cat >> "${tmp_conf}" <<'EOF'
+
+[hotkey]
+enabled = false
+EOF
+    fi
+  fi
+
+  install_user_dir ".config/voxtype"
+  install_user_file "${tmp_conf}" ".config/voxtype/config.toml"
+  rm -f "${tmp_conf}"
+}
+
 stage_apply() {
   load_or_prompt_target_user >/dev/null
 
@@ -79,16 +177,8 @@ stage_apply() {
   ensure_apt_packages "${BOOTSTRAP_ROOT}/files/packages/speech-apt.txt"
   install_voxtype
 
-  # Deploy voxtype config (hotkey disabled — i3 binding handles toggle)
-  install_user_dir ".config/voxtype"
-  local tmp_conf
-  tmp_conf="$(mktemp)"
-  cat > "${tmp_conf}" <<'EOF'
-[hotkey]
-enabled = false
-EOF
-  install_user_file "${tmp_conf}" ".config/voxtype/config.toml"
-  rm -f "${tmp_conf}"
+  # Deploy voxtype config with built-in hotkey disabled; i3 owns the toggle binding.
+  write_voxtype_config "${target_home}"
 
   # Download a default Whisper model non-interactively
   log_info "Downloading whisper tiny.en model for ${TARGET_USER}"
