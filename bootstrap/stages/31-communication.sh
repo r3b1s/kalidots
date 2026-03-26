@@ -8,6 +8,11 @@ stage_profiles=("apps")
 # shellcheck disable=SC1091
 source "${BOOTSTRAP_ROOT}/lib/users.sh"
 
+repair_flatpak_system_repo() {
+  log_warn "Attempting Flatpak system repo repair"
+  flatpak repair --system -y || log_warn "Flatpak repair did not complete cleanly"
+}
+
 install_flatpak_app() {
   local app_id="$1"
   local name="$2"
@@ -18,7 +23,17 @@ install_flatpak_app() {
   fi
 
   log_info "Installing ${name} via Flatpak"
-  flatpak install -y flathub "${app_id}" || { log_warn "${name} Flatpak install failed"; return 1; }
+  if flatpak install -y --noninteractive flathub "${app_id}"; then
+    return 0
+  fi
+
+  log_warn "${name} Flatpak install failed; repairing Flatpak repo and retrying once"
+  repair_flatpak_system_repo
+
+  flatpak install -y --noninteractive flathub "${app_id}" || {
+    log_warn "${name} Flatpak install failed after Flatpak repair"
+    return 1
+  }
 }
 
 install_element() {
