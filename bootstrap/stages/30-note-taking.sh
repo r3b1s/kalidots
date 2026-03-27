@@ -117,6 +117,13 @@ DESKTOP
     chown -R "${TARGET_USER}:${TARGET_USER}" "${vault_dir}"
   fi
 
+  # CLI launcher
+  cat > /usr/local/bin/obsidian <<'WRAPPER'
+#!/usr/bin/env bash
+exec /opt/obsidian/Obsidian.AppImage --no-sandbox "$@"
+WRAPPER
+  chmod 755 /usr/local/bin/obsidian
+
   register_in_manifest "obsidian" "github:obsidianmd/obsidian-releases" "appimage" "/opt/obsidian/Obsidian.AppImage" "${version}"
 }
 

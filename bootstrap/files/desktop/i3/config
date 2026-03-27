@@ -250,7 +250,7 @@ bindsym $mod+Shift+Ctrl+Mod1+v exec --no-startup-id $scripts/clipboard-clear.sh
 
 bindsym $mod+Ctrl+b exec --no-startup-id qutebrowser
 bindsym $mod+Ctrl+m exec --no-startup-id remmina
-bindsym $mod+Shift+o exec --no-startup-id /opt/obsidian/Obsidian.AppImage
+bindsym $mod+Shift+o exec --no-startup-id /opt/obsidian/Obsidian.AppImage --no-sandbox
 bindsym $mod+Ctrl+e exec --no-startup-id rofimoji
 bindsym $mod+Mod1+t exec --no-startup-id $term --working-directory /usr/share
 bindsym $mod+Mod1+e exec --no-startup-id env KALIDOTS_ROFI_INITIAL='flat-paths|terminal' $scripts/kali-menu.sh main
