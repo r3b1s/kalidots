@@ -1,6 +1,6 @@
 # kalidots
 
-A modular, resumable bootstrap system for Kali Linux workstations. Installs packages, configures a desktop environment with i3, deploys dotfiles, manages browsers, communication apps, note-taking tools, speech-to-text, imports secrets, and sets up LLM tooling — all driven by a profile-based stage runner with built-in state tracking, verification, and a centralized update manager.
+A modular, resumable bootstrap system for Kali Linux workstations. Installs packages, configures a desktop environment with i3, deploys dotfiles, manages browsers, communication apps, note-taking tools, imports secrets, and sets up LLM tooling — all driven by a profile-based stage runner with built-in state tracking, verification, and a centralized update manager.
 
 ## Quick Start
 
@@ -31,7 +31,6 @@ Profiles group stages by purpose. Select one or more at runtime.
 | **secrets** | SSH directory and KeePassXC database import with permission enforcement |
 | **llm** | LLM auth documentation and config templates (Codex, Claude, Gemini) |
 | **theme** | Color scheme overlays for desktop apps (requires desktop profile first) |
-| **speech** | Speech-to-text with voxtype and ydotool |
 
 ## Stages
 
@@ -57,7 +56,6 @@ Each stage declares which profiles it belongs to, a `stage_apply` function, and 
 | `52-tools-privacy` | tools | Telemetry opt-outs (Go telemetry, registry enforcement across all manifests) |
 | `60-secrets-import` | secrets | SSH keys + KeePassXC vault import with strict permissions |
 | `70-llm-tooling` | llm | Deploy auth docs and config templates for LLM tools |
-| `80-speech-to-text` | speech | Voxtype + ydotool, whisper model download |
 | `150-ctf-htbtoolkit` | ctf | Hack The Box toolkit |
 | `200-theme-pink-rot` | theme | Pink-rot color theme for all desktop apps |
 
@@ -67,7 +65,7 @@ The centralized update manager (`~/.config/i3/scripts/update-manager.sh`) handle
 
 1. **APT packages** — `apt update && apt upgrade`
 2. **Flatpak apps** — Discord, Vesktop, Telegram, Grayjay, etc.
-3. **Manifest-tracked tools** — Queries GitHub API for latest releases of Obsidian, Joplin, voxtype, opengrep, Tailscale
+3. **Manifest-tracked tools** — Queries GitHub API for latest releases of Obsidian, Joplin, opengrep, Tailscale
 
 The update manifest lives at `~/.config/kalidots/update-manifest.json`. Each tool-installing stage registers its version there.
 
@@ -79,7 +77,7 @@ Access via the Kali menu (Super+Alt+Space > Update) or the i3 keybinding.
 sudo ./bootstrap/bin/kali-bootstrap [OPTIONS]
 
 Options:
-  --profile PROFILE       Profile to activate (repeatable: base, desktop, keyboard, apps, tools, ctf, llm, secrets, theme, speech)
+  --profile PROFILE       Profile to activate (repeatable: base, desktop, keyboard, apps, tools, ctf, llm, secrets, theme)
   --stage STAGE_ID        Run specific stage(s) by ID, overrides profile matching (repeatable)
   --state-file PATH       Custom state file path (default: .bootstrap/state.json)
   --yes                   Skip confirmation prompts
@@ -142,7 +140,6 @@ Each profile has a policy file (`bootstrap/files/packages/*-policy.env`) control
 | Super+M | Music workspace |
 | Super+Shift+O | Launch Obsidian |
 | Super+Ctrl+E | Emoji picker (rofimoji) |
-| Super+D | Speech-to-text toggle |
 | Super+Alt+E | Paths (terminal) |
 | Super+Ctrl+Alt+E | Paths (file explorer) |
 

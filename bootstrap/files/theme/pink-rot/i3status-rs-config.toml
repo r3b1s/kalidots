@@ -6,28 +6,6 @@ theme = "pink-rot"
 
 [[block]]
 block = "custom"
-command = "[ -f /tmp/i3-recording-active ] && echo REC"
-format = " $text "
-interval = 2
-[block.theme_overrides]
-idle_bg = "#050007"
-idle_fg = "#E80F3E"
-info_bg = "#050007"
-info_fg = "#fff1f5"
-
-[[block]]
-block = "custom"
-command = "pgrep -x voxtype >/dev/null 2>&1 && echo VOX"
-format = " $text "
-interval = 2
-[block.theme_overrides]
-idle_bg = "#470316"
-idle_fg = "#ffd8ea"
-info_bg = "#6a0620"
-info_fg = "#fff0f7"
-
-[[block]]
-block = "custom"
 command = "[ -f /tmp/i3-autolock-disabled ] && echo LOCK-OFF || echo LOCK-ON"
 format = " $text "
 interval = 2

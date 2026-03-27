@@ -8,7 +8,6 @@ readonly -a MAIN_MENU_LABELS=(
   "Paths (Term)"
   "Paths (File Explorer)"
   "Update"
-  "Screen Recording"
   "Screenshot"
 )
 readonly -a MAIN_MENU_ICONS=(
@@ -16,7 +15,6 @@ readonly -a MAIN_MENU_ICONS=(
   "utilities-terminal"
   "system-file-manager"
   "system-software-update"
-  "camera-video"
   "applets-screenshooter"
 )
 
@@ -333,6 +331,7 @@ show_tools_menu() {
   local -a labels=()
   local -a icons=()
   local -a directories=()
+  local -a xml_names=()
   local row
   local idx
   local name
@@ -356,10 +355,11 @@ show_tools_menu() {
     labels+=("$(directory_name_for_file "${directory_file}")")
     icons+=("$(icon_or_default "$(directory_icon_for_file "${directory_file}")" "applications-other")")
     directories+=("${directory}")
+    xml_names+=("${name}")
   done
 
   idx="$(rofi_pick_index "Tools" labels icons)" || return 0
-  show_category_tools "${menu_file}" "${labels[idx]}" "${directories[idx]}"
+  show_category_tools "${menu_file}" "${xml_names[idx]}" "${directories[idx]}"
 }
 
 open_path_target() {
@@ -405,28 +405,6 @@ show_flat_paths() {
   open_path_target "${mode}" "${values[idx]}"
 }
 
-show_screen_recording_menu() {
-  local -a labels=(
-    "Record Full Screen"
-    "Record Selection"
-    "Record Selection To GIF"
-  )
-  local -a icons=(
-    "video-display"
-    "video-x-generic"
-    "image-gif"
-  )
-  local idx
-
-  idx="$(rofi_pick_index "Recording" labels icons)" || return 0
-
-  case "${labels[idx]}" in
-    "Record Full Screen") setsid -f "${SCRIPT_DIR}/screen-record.sh" --fullscreen >/dev/null 2>&1 || true ;;
-    "Record Selection") setsid -f "${SCRIPT_DIR}/screen-record.sh" --area >/dev/null 2>&1 || true ;;
-    "Record Selection To GIF") setsid -f "${SCRIPT_DIR}/screen-record.sh" --gif >/dev/null 2>&1 || true ;;
-  esac
-}
-
 show_screenshot_menu() {
   local -a labels=(
     "Fullscreen"
@@ -459,7 +437,6 @@ show_main_menu() {
     "Paths (Term)") show_flat_paths "terminal" ;;
     "Paths (File Explorer)") show_flat_paths "file-manager" ;;
     "Update") setsid -f "${SCRIPT_DIR}/update-manager.sh" >/dev/null 2>&1 || true ;;
-    "Screen Recording") show_screen_recording_menu ;;
     "Screenshot") show_screenshot_menu ;;
   esac
 }
@@ -508,14 +485,6 @@ render_flat_paths_menu_script() {
   done
 }
 
-render_screen_recording_menu_script() {
-  rofi_script_header "Recording" "recording"
-  rofi_script_row "Back" "go-previous" "back|main"
-  rofi_script_row "Record Full Screen" "video-display" "recording|fullscreen"
-  rofi_script_row "Record Selection" "video-x-generic" "recording|area"
-  rofi_script_row "Record Selection To GIF" "image-gif" "recording|gif"
-}
-
 render_screenshot_menu_script() {
   rofi_script_header "Screenshot" "screenshot"
   rofi_script_row "Back" "go-previous" "back|main"
@@ -543,7 +512,7 @@ render_tools_menu_script() {
     rofi_script_row \
       "$(directory_name_for_file "${directory_file}")" \
       "$(icon_or_default "$(directory_icon_for_file "${directory_file}")" "applications-other")" \
-      "tools-category|$(directory_name_for_file "${directory_file}")|${directory}"
+      "tools-category|${name}|${directory}"
   done
 }
 
@@ -554,6 +523,7 @@ render_tools_category_menu_script() {
   local category_directory_file
   local category_slug
   local category_icon
+  local category_display_name
   local -a sub_rows=()
   local -a sub_slugs=()
   local row
@@ -567,10 +537,11 @@ render_tools_category_menu_script() {
   category_directory_file="$(find_directory_file "${category_directory}")" || exit 0
   category_slug="$(slug_from_directory_file "${category_directory_file}")"
   category_icon="$(directory_icon_for_file "${category_directory_file}")"
+  category_display_name="$(directory_name_for_file "${category_directory_file}")"
 
   mapfile -t sub_rows < <(parse_subcategories "${menu_file}" "${category_name}")
   if [[ ${#sub_rows[@]} -eq 0 ]]; then
-    render_tools_app_menu_script "${category_name}" "${category_slug}"
+    render_tools_app_menu_script "${category_display_name}" "${category_slug}"
     return 0
   fi
 
@@ -582,9 +553,9 @@ render_tools_category_menu_script() {
   done
   slugs_csv="$(IFS=,; printf '%s' "${sub_slugs[*]}")"
 
-  rofi_script_header "${category_name}" "tools-category|${category_name}|${category_directory}"
+  rofi_script_header "${category_display_name}" "tools-category|${category_name}|${category_directory}"
   rofi_script_row "Back" "go-previous" "back|tools-top"
-  rofi_script_row "All Tools" "${category_icon}" "tools-apps|${category_name}|${slugs_csv}"
+  rofi_script_row "All Tools" "${category_icon}" "tools-apps|${category_display_name}|${slugs_csv}"
 
   for row in "${sub_rows[@]}"; do
     IFS=$'\t' read -r sub_name sub_directory <<<"${row}"
@@ -634,7 +605,6 @@ handle_rofi_script_selection() {
         "Paths (Term)") render_flat_paths_menu_script "terminal" ;;
         "Paths (File Explorer)") render_flat_paths_menu_script "file-manager" ;;
         "Update") setsid -f "${SCRIPT_DIR}/update-manager.sh" >/dev/null 2>&1 || true ;;
-        "Screen Recording") render_screen_recording_menu_script ;;
         "Screenshot") render_screenshot_menu_script ;;
       esac
       ;;
@@ -649,13 +619,6 @@ handle_rofi_script_selection() {
       ;;
     path-open)
       open_path_target "${arg1}" "${arg2}"
-      ;;
-    recording)
-      case "${arg1}" in
-        fullscreen) setsid -f "${SCRIPT_DIR}/screen-record.sh" --fullscreen >/dev/null 2>&1 || true ;;
-        area) setsid -f "${SCRIPT_DIR}/screen-record.sh" --area >/dev/null 2>&1 || true ;;
-        gif) setsid -f "${SCRIPT_DIR}/screen-record.sh" --gif >/dev/null 2>&1 || true ;;
-      esac
       ;;
     screenshot)
       case "${arg1}" in
@@ -689,7 +652,6 @@ render_initial_menu_script() {
   case "${KALIDOTS_ROFI_INITIAL:-main}" in
     flat-paths\|terminal) render_flat_paths_menu_script "terminal" ;;
     flat-paths\|file-manager) render_flat_paths_menu_script "file-manager" ;;
-    recording) render_screen_recording_menu_script ;;
     screenshot) render_screenshot_menu_script ;;
     tools-top) render_tools_menu_script ;;
     *) render_main_menu_script ;;
@@ -710,7 +672,6 @@ case "${MODE}" in
   tools) show_tools_menu ;;
   paths-term) show_flat_paths "terminal" ;;
   paths-files) show_flat_paths "file-manager" ;;
-  recording) show_screen_recording_menu ;;
   screenshot) show_screenshot_menu ;;
   *) exit 1 ;;
 esac

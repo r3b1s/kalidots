@@ -227,14 +227,10 @@ bindsym $mod+Ctrl+Mod1+6 exec --no-startup-id thunar /usr/share/nmap
 bindsym $mod+Ctrl+Mod1+7 exec --no-startup-id thunar /usr/share/webshells
 bindsym $mod+Ctrl+Mod1+0 exec --no-startup-id thunar /var/www/html
 
-# ─── Screenshots / Recording ───────────────────────────────────────────────────
+# ─── Screenshots ──────────────────────────────────────────────────────────────
 
 bindsym $mod+semicolon exec --no-startup-id scrot -s -f '/tmp/screenshot-%Y%m%d-%H%M%S.png' -e 'xclip -selection clipboard -t image/png < $f && rm -f $f && notify-send -t 5000 "Screenshot" "Copied selection to clipboard"'
 bindsym $mod+Ctrl+semicolon exec --no-startup-id flameshot gui
-bindsym $mod+Mod1+semicolon exec --no-startup-id $scripts/screen-record.sh --fullscreen
-bindsym $mod+r exec --no-startup-id $scripts/screen-record.sh --area
-bindsym $mod+Ctrl+r exec --no-startup-id $scripts/screen-record.sh --gif
-bindsym $mod+Shift+r exec --no-startup-id $scripts/screen-record.sh --stop
 
 # ─── Notifications (dunstctl) ──────────────────────────────────────────────────
 
@@ -257,7 +253,6 @@ bindsym $mod+Ctrl+m exec --no-startup-id remmina
 bindsym $mod+Shift+o exec --no-startup-id /opt/obsidian/Obsidian.AppImage
 bindsym $mod+Ctrl+e exec --no-startup-id rofimoji
 bindsym $mod+Mod1+t exec --no-startup-id $term --working-directory /usr/share
-bindsym $mod+d exec --no-startup-id voxtype toggle
 bindsym $mod+Mod1+e exec --no-startup-id env KALIDOTS_ROFI_INITIAL='flat-paths|terminal' $scripts/kali-menu.sh main
 
 # ─── System / Controls ─────────────────────────────────────────────────────────

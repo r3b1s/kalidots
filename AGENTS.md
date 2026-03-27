@@ -21,7 +21,7 @@ tests/bootstrap/lib/        Unit tests for library functions.
 
 ### Profiles and stages
 
-There are ten **profiles**: `base`, `desktop`, `keyboard`, `apps`, `tools`, `ctf`, `secrets`, `llm`, `theme`, `speech`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order. The `keyboard` profile is separate from `desktop` — it covers system-level/low-level keyboard configuration (e.g. Kanata), not desktop-environment-specific keybindings. The `ctf` profile is for platform-specific CTF tooling that is not part of the general `tools` profile. The `theme` profile is independent from `desktop` — it overlays color schemes on top of already-deployed desktop configs.
+There are nine **profiles**: `base`, `desktop`, `keyboard`, `apps`, `tools`, `ctf`, `secrets`, `llm`, `theme`. Each **stage** declares which profiles it belongs to via a `stage_profiles` array. The runner discovers all `bootstrap/stages/*.sh` files alphabetically, matches them against selected profiles, and executes them in order. The `keyboard` profile is separate from `desktop` — it covers system-level/low-level keyboard configuration (e.g. Kanata), not desktop-environment-specific keybindings. The `ctf` profile is for platform-specific CTF tooling that is not part of the general `tools` profile. The `theme` profile is independent from `desktop` — it overlays color schemes on top of already-deployed desktop configs.
 
 Stage `21-bootstrap-user-cleanup` has no profile — it only runs when explicitly requested via `--stage bootstrap-user-cleanup`.
 
@@ -99,7 +99,7 @@ These are set by `cli.sh` and used throughout:
 
 ### Keyboard vs Desktop profile boundary
 
-The `keyboard` profile covers system-level/low-level keyboard configuration (Kanata, key remapping, input device setup). Desktop-environment-specific keybindings (i3 bindsym, Hyprland binds) belong in `desktop`. When adding new keyboard-related stages, use the `keyboard` profile and the 29 numbering range. The `apps` profile covers optional application installs (note-taking, communication). The `speech` profile covers speech-to-text tooling.
+The `keyboard` profile covers system-level/low-level keyboard configuration (Kanata, key remapping, input device setup). Desktop-environment-specific keybindings (i3 bindsym, Hyprland binds) belong in `desktop`. When adding new keyboard-related stages, use the `keyboard` profile and the 29 numbering range. The `apps` profile covers optional application installs (note-taking, communication).
 
 ### Theme profile
 
