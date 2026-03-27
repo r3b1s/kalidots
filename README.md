@@ -65,7 +65,7 @@ The centralized update manager (`~/.config/i3/scripts/update-manager.sh`) handle
 
 1. **APT packages** — `apt update && apt upgrade`
 2. **Flatpak apps** — Discord, Vesktop, Telegram, Grayjay, etc.
-3. **Manifest-tracked tools** — Queries GitHub API for latest releases of Obsidian, Joplin, opengrep, Tailscale
+3. **Manifest-tracked tools** — Queries GitHub API for latest releases of opengrep, Tailscale
 
 The update manifest lives at `~/.config/kalidots/update-manifest.json`. Each tool-installing stage registers its version there.
 
