@@ -139,10 +139,14 @@ parse_top_categories() {
     /<Menu>/ { depth++; next }
     /<\/Menu>/ {
       if (depth == 2 && name[depth] != "Usual Applications") {
-        print name[depth] "\t" directory[depth]
+        cats = categories[depth]
+        sub(/,+$/, "", cats)
+        if (cats == "") cats = "_none_"
+        print name[depth] "\t" directory[depth] "\t" cats
       }
       delete name[depth]
       delete directory[depth]
+      delete categories[depth]
       depth--
       next
     }
@@ -158,6 +162,13 @@ parse_top_categories() {
       sub(/^.*<Directory>/, "", line)
       sub(/<\/Directory>.*$/, "", line)
       directory[depth] = line
+    }
+    /<Category>/ {
+      line = $0
+      sub(/^.*<Category>/, "", line)
+      sub(/<\/Category>.*$/, "", line)
+      if (categories[depth] != "") categories[depth] = categories[depth] ","
+      categories[depth] = categories[depth] line
     }
   ' "${menu_file}"
 }
@@ -170,10 +181,14 @@ parse_subcategories() {
     /<Menu>/ { depth++; next }
     /<\/Menu>/ {
       if (depth == 3 && name[2] == parent && name[depth] != "") {
-        print name[depth] "\t" directory[depth]
+        cats = categories[depth]
+        sub(/,+$/, "", cats)
+        if (cats == "") cats = "_none_"
+        print name[depth] "\t" directory[depth] "\t" cats
       }
       delete name[depth]
       delete directory[depth]
+      delete categories[depth]
       depth--
       next
     }
@@ -190,20 +205,22 @@ parse_subcategories() {
       sub(/<\/Directory>.*$/, "", line)
       directory[depth] = line
     }
+    /<Category>/ {
+      line = $0
+      sub(/^.*<Category>/, "", line)
+      sub(/<\/Category>.*$/, "", line)
+      if (categories[depth] != "") categories[depth] = categories[depth] ","
+      categories[depth] = categories[depth] line
+    }
   ' "${menu_file}"
 }
 
-slug_from_directory_file() {
-  local directory_file="$1"
-  printf '%s\n' "$(basename "${directory_file}" .directory)"
-}
-
-find_desktop_entries_by_slugs() {
-  local -a slugs=("$@")
+find_desktop_entries_by_categories() {
+  local -a cats=("$@")
   local cache_root="${XDG_CACHE_HOME:-${HOME}/.cache}/kalidots"
   local cache_file="${cache_root}/desktop-entry-cache.tsv"
   local -a desktop_files=()
-  local slug_regex
+  local cat_regex
 
   mkdir -p "${cache_root}"
   mapfile -t desktop_files < <(find /usr/share/applications /usr/local/share/applications -maxdepth 1 -type f -name '*.desktop' 2>/dev/null | sort)
@@ -237,14 +254,14 @@ find_desktop_entries_by_slugs() {
     ' "${desktop_files[@]}" 2>/dev/null | sort -t $'\t' -k1,1f > "${cache_file}"
   fi
 
-  slug_regex="$(printf '%s\n' "${slugs[@]}" | paste -sd'|' -)"
-  awk -F'\t' -v regex=";(${slug_regex});" '$4 ~ regex { print $1 "\t" $2 "\t" $3 }' "${cache_file}"
+  cat_regex="$(printf '%s\n' "${cats[@]}" | paste -sd'|' -)"
+  awk -F'\t' -v regex="(^|;)(${cat_regex})(;|$)" '$4 ~ regex { print $1 "\t" $2 "\t" $3 }' "${cache_file}"
 }
 
-show_app_list_for_slugs() {
+show_app_list() {
   local prompt="$1"
   shift
-  local -a slugs=("$@")
+  local -a cats=("$@")
   local -a app_rows=()
   local -a labels=()
   local -a icons=()
@@ -255,7 +272,7 @@ show_app_list_for_slugs() {
   local icon
   local desktop_file
 
-  mapfile -t app_rows < <(find_desktop_entries_by_slugs "${slugs[@]}" | sort -t $'\t' -k1,1f)
+  mapfile -t app_rows < <(find_desktop_entries_by_categories "${cats[@]}" | sort -t $'\t' -k1,1f)
   [[ ${#app_rows[@]} -gt 0 ]] || {
     notify-send -t 5000 "Kali Tools" "No launchers found for ${prompt}"
     return 0
@@ -276,17 +293,18 @@ show_category_tools() {
   local menu_file="$1"
   local category_name="$2"
   local category_directory="$3"
-  local category_slug
+  local category_categories="$4"
   local category_icon
   local category_directory_file
   local -a sub_rows=()
   local -a labels=()
   local -a icons=()
-  local -a sub_slugs=()
+  local -a sub_categories=()
   local row
   local idx
   local sub_name
   local sub_directory
+  local sub_cats
   local sub_directory_file
   local sub_icon
 
@@ -294,35 +312,42 @@ show_category_tools() {
     notify-send -t 5000 "Kali Tools" "Missing directory metadata for ${category_name}"
     return 0
   }
-  category_slug="$(slug_from_directory_file "${category_directory_file}")"
   category_icon="$(directory_icon_for_file "${category_directory_file}")"
 
   mapfile -t sub_rows < <(parse_subcategories "${menu_file}" "${category_name}")
   if [[ ${#sub_rows[@]} -eq 0 ]]; then
-    show_app_list_for_slugs "${category_name}" "${category_slug}"
+    IFS=',' read -r -a _cats <<<"${category_categories}"
+    show_app_list "${category_name}" "${_cats[@]}"
     return 0
   fi
 
   labels=("All Tools")
   icons=("${category_icon}")
-  sub_slugs=("${category_slug}")
+  sub_categories=("${category_categories}")
 
   for row in "${sub_rows[@]}"; do
-    IFS=$'\t' read -r sub_name sub_directory <<<"${row}"
+    IFS=$'\t' read -r sub_name sub_directory sub_cats <<<"${row}"
     sub_directory_file="$(find_directory_file "${sub_directory}")" || continue
     sub_icon="$(directory_icon_for_file "${sub_directory_file}")"
     labels+=("${sub_name}")
     icons+=("$(icon_or_default "${sub_icon}" "applications-other")")
-    sub_slugs+=("$(slug_from_directory_file "${sub_directory_file}")")
+    sub_categories+=("${sub_cats}")
   done
 
   idx="$(rofi_pick_index "${category_name}" labels icons)" || return 0
   if [[ "${idx}" == "0" ]]; then
-    show_app_list_for_slugs "${category_name}" "${sub_slugs[@]}"
+    local -a all_cats=()
+    local entry
+    for entry in "${sub_categories[@]}"; do
+      IFS=',' read -r -a _split <<<"${entry}"
+      all_cats+=("${_split[@]}")
+    done
+    show_app_list "${category_name}" "${all_cats[@]}"
     return 0
   fi
 
-  show_app_list_for_slugs "${labels[idx]}" "${sub_slugs[idx]}"
+  IFS=',' read -r -a _cats <<<"${sub_categories[idx]}"
+  show_app_list "${labels[idx]}" "${_cats[@]}"
 }
 
 show_tools_menu() {
@@ -332,10 +357,12 @@ show_tools_menu() {
   local -a icons=()
   local -a directories=()
   local -a xml_names=()
+  local -a xml_categories=()
   local row
   local idx
   local name
   local directory
+  local cats
   local directory_file
 
   menu_file="$(find_kali_menu_file)" || {
@@ -350,16 +377,17 @@ show_tools_menu() {
   }
 
   for row in "${top_rows[@]}"; do
-    IFS=$'\t' read -r name directory <<<"${row}"
+    IFS=$'\t' read -r name directory cats <<<"${row}"
     directory_file="$(find_directory_file "${directory}")" || continue
     labels+=("$(directory_name_for_file "${directory_file}")")
     icons+=("$(icon_or_default "$(directory_icon_for_file "${directory_file}")" "applications-other")")
     directories+=("${directory}")
     xml_names+=("${name}")
+    xml_categories+=("${cats}")
   done
 
   idx="$(rofi_pick_index "Tools" labels icons)" || return 0
-  show_category_tools "${menu_file}" "${xml_names[idx]}" "${directories[idx]}"
+  show_category_tools "${menu_file}" "${xml_names[idx]}" "${directories[idx]}" "${xml_categories[idx]}"
 }
 
 open_path_target() {
@@ -499,6 +527,7 @@ render_tools_menu_script() {
   local row
   local name
   local directory
+  local cats
   local directory_file
 
   menu_file="$(find_kali_menu_file)" || exit 0
@@ -507,82 +536,81 @@ render_tools_menu_script() {
 
   mapfile -t top_rows < <(parse_top_categories "${menu_file}")
   for row in "${top_rows[@]}"; do
-    IFS=$'\t' read -r name directory <<<"${row}"
+    IFS=$'\t' read -r name directory cats <<<"${row}"
     directory_file="$(find_directory_file "${directory}")" || continue
     rofi_script_row \
       "$(directory_name_for_file "${directory_file}")" \
       "$(icon_or_default "$(directory_icon_for_file "${directory_file}")" "applications-other")" \
-      "tools-category|${name}|${directory}"
+      "tools-category|${name}|${directory}|${cats}"
   done
 }
 
 render_tools_category_menu_script() {
   local category_name="$1"
   local category_directory="$2"
+  local category_categories="$3"
   local menu_file
   local category_directory_file
-  local category_slug
   local category_icon
   local category_display_name
   local -a sub_rows=()
-  local -a sub_slugs=()
+  local -a all_cats_parts=()
   local row
   local sub_name
   local sub_directory
+  local sub_cats
   local sub_directory_file
   local sub_icon
-  local slugs_csv
+  local all_cats_csv
 
   menu_file="$(find_kali_menu_file)" || exit 0
   category_directory_file="$(find_directory_file "${category_directory}")" || exit 0
-  category_slug="$(slug_from_directory_file "${category_directory_file}")"
   category_icon="$(directory_icon_for_file "${category_directory_file}")"
   category_display_name="$(directory_name_for_file "${category_directory_file}")"
 
   mapfile -t sub_rows < <(parse_subcategories "${menu_file}" "${category_name}")
   if [[ ${#sub_rows[@]} -eq 0 ]]; then
-    render_tools_app_menu_script "${category_display_name}" "${category_slug}"
+    render_tools_app_menu_script "${category_display_name}" "${category_categories}"
     return 0
   fi
 
-  sub_slugs=("${category_slug}")
+  all_cats_parts=("${category_categories}")
   for row in "${sub_rows[@]}"; do
-    IFS=$'\t' read -r sub_name sub_directory <<<"${row}"
-    sub_directory_file="$(find_directory_file "${sub_directory}")" || continue
-    sub_slugs+=("$(slug_from_directory_file "${sub_directory_file}")")
+    IFS=$'\t' read -r sub_name sub_directory sub_cats <<<"${row}"
+    all_cats_parts+=("${sub_cats}")
   done
-  slugs_csv="$(IFS=,; printf '%s' "${sub_slugs[*]}")"
+  all_cats_csv="$(IFS=,; printf '%s' "${all_cats_parts[*]}")"
 
-  rofi_script_header "${category_display_name}" "tools-category|${category_name}|${category_directory}"
+  rofi_script_header "${category_display_name}" "tools-category|${category_name}|${category_directory}|${category_categories}"
   rofi_script_row "Back" "go-previous" "back|tools-top"
-  rofi_script_row "All Tools" "${category_icon}" "tools-apps|${category_display_name}|${slugs_csv}"
+  rofi_script_row "All Tools" "${category_icon}" "tools-apps|${category_display_name}|${all_cats_csv}"
 
   for row in "${sub_rows[@]}"; do
-    IFS=$'\t' read -r sub_name sub_directory <<<"${row}"
+    IFS=$'\t' read -r sub_name sub_directory sub_cats <<<"${row}"
     sub_directory_file="$(find_directory_file "${sub_directory}")" || continue
     sub_icon="$(icon_or_default "$(directory_icon_for_file "${sub_directory_file}")" "applications-other")"
     rofi_script_row \
       "${sub_name}" \
       "${sub_icon}" \
-      "tools-apps|${sub_name}|$(slug_from_directory_file "${sub_directory_file}")"
+      "tools-apps|${sub_name}|${sub_cats}"
   done
 }
 
 render_tools_app_menu_script() {
   local prompt="$1"
-  local slugs_csv="$2"
-  local -a slugs=()
+  local cats_csv="$2"
+  local -a cats=()
   local -a app_rows=()
   local row
   local label
   local icon
   local desktop_file
 
-  IFS=',' read -r -a slugs <<<"${slugs_csv}"
-  rofi_script_header "${prompt}" "tools-apps|${prompt}|${slugs_csv}"
+  IFS=',' read -r -a cats <<<"${cats_csv}"
+  rofi_script_header "${prompt}" "tools-apps|${prompt}|${cats_csv}"
   rofi_script_row "Back" "go-previous" "back|tools-top"
 
-  mapfile -t app_rows < <(find_desktop_entries_by_slugs "${slugs[@]}" | sort -t $'\t' -k1,1f)
+  mapfile -t app_rows < <(find_desktop_entries_by_categories "${cats[@]}" | sort -t $'\t' -k1,1f)
   for row in "${app_rows[@]}"; do
     IFS=$'\t' read -r label icon desktop_file <<<"${row}"
     rofi_script_row "${label}" "$(icon_or_default "${icon}" "application-x-executable")" "launch-desktop|${desktop_file}"
@@ -595,8 +623,9 @@ handle_rofi_script_selection() {
   local action
   local arg1
   local arg2
+  local arg3
 
-  IFS='|' read -r action arg1 arg2 <<<"${info}"
+  IFS='|' read -r action arg1 arg2 arg3 <<<"${info}"
 
   case "${action}" in
     main)
@@ -628,7 +657,7 @@ handle_rofi_script_selection() {
       esac
       ;;
     tools-category)
-      render_tools_category_menu_script "${arg1}" "${arg2}"
+      render_tools_category_menu_script "${arg1}" "${arg2}" "${arg3}"
       ;;
     tools-apps)
       render_tools_app_menu_script "${arg1}" "${arg2}"
