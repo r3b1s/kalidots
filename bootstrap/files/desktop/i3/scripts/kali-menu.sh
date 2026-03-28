@@ -464,7 +464,7 @@ show_main_menu() {
     "Tools") show_tools_menu ;;
     "Paths (Term)") show_flat_paths "terminal" ;;
     "Paths (File Explorer)") show_flat_paths "file-manager" ;;
-    "Update") setsid -f "${SCRIPT_DIR}/update-manager.sh" >/dev/null 2>&1 || true ;;
+    "Update") setsid -f alacritty -e "${SCRIPT_DIR}/update-manager.sh" >/dev/null 2>&1 || true ;;
     "Screenshot") show_screenshot_menu ;;
   esac
 }
@@ -633,7 +633,7 @@ handle_rofi_script_selection() {
         "Tools") render_tools_menu_script ;;
         "Paths (Term)") render_flat_paths_menu_script "terminal" ;;
         "Paths (File Explorer)") render_flat_paths_menu_script "file-manager" ;;
-        "Update") setsid -f "${SCRIPT_DIR}/update-manager.sh" >/dev/null 2>&1 || true ;;
+        "Update") setsid -f alacritty -e "${SCRIPT_DIR}/update-manager.sh" >/dev/null 2>&1 || true ;;
         "Screenshot") render_screenshot_menu_script ;;
       esac
       ;;
