@@ -31,9 +31,6 @@ stage_apply() {
   local target_home
   target_home="$(getent passwd "${TARGET_USER}" | cut -d: -f6)"
 
-  apt-get update
-  apt-get full-upgrade -y
-
   local -a choices=()
 
   if command -v gum >/dev/null 2>&1; then

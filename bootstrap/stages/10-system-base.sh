@@ -17,6 +17,9 @@ stage_apply() {
     return 1
   fi
 
+  apt-get update
+  apt-get full-upgrade -y
+
   ensure_apt_packages "bootstrap/files/packages/base-apt.txt"
   install -d -m 0755 ./.bootstrap
 }
